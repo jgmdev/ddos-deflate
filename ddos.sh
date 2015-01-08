@@ -38,6 +38,16 @@ showhelp()
 	echo '-k | --kill: Block the offending ip making more than N connections'
 }
 
+only_root()
+{
+	user_id=`id -u`
+	
+	if [ "$user_id" != "0" ]; then
+		echo "You need super user priviliges for this."
+		exit
+	fi
+}
+
 # Gets a list of ip address to ignore with hostnames on the
 # ignore.host.list resolved to ip numbers
 ignore_list()
@@ -114,6 +124,7 @@ while [ $1 ]; do
 			exit
 			;;
 		'--cron' | '-c' )
+			only_root
 			add_to_cron
 			exit
 			;;
@@ -124,6 +135,7 @@ while [ $1 ]; do
 			exit
 			;;
 		'--kill' | '-k' )
+			only_root
 			KILL=1
 			;;
 		 *[0-9]* )
@@ -136,6 +148,8 @@ while [ $1 ]; do
 	esac
 	shift
 done
+
+only_root
 
 TMP_PREFIX='/tmp/ddos'
 TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
