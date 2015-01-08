@@ -34,6 +34,7 @@ showhelp()
 	echo 'OPTIONS:'
 	echo '-h | --help: Show	this help screen'
 	echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
+	echo '-i | --ignore-list: List whitelisted ip addresses.'
 	echo '-k | --kill: Block the offending ip making more than N connections'
 }
 
@@ -114,6 +115,12 @@ while [ $1 ]; do
 			;;
 		'--cron' | '-c' )
 			add_to_cron
+			exit
+			;;
+		'--ignore-list' | '-i' )
+			echo "List of currently whitelisted ip's."
+			echo "==================================="
+			ignore_list
 			exit
 			;;
 		'--kill' | '-k' )
