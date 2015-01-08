@@ -67,7 +67,7 @@ add_to_cron()
 {
 	rm -f $CRON
 	if [ $FREQ -le 2 ]; then
-		echo "0-59/$FREQ * * * * root /usr/local/ddos/ddos.sh >/dev/null 2>&1" > $CRON
+		echo "0-59/$FREQ * * * * root /usr/local/sbin/ddos >/dev/null 2>&1" > $CRON
 	else
 		let "START_MINUTE = $RANDOM % ($FREQ - 1)"
 		let "START_MINUTE = $START_MINUTE + 1"
