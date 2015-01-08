@@ -111,7 +111,28 @@ BANNED_IP_LIST=`$TMP_FILE`
 echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
 echo >>	$BANNED_IP_MAIL
 BAD_IP_LIST=`$TMP_FILE`
-netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr > $BAD_IP_LIST
+
+# Original command to get ip's
+#netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr > $BAD_IP_LIST
+
+# Improved command
+netstat -ntu | \
+    # Strip netstat heading
+    tail -n +3 | \
+    # Match only the given connection states
+    grep -E "$CONN_STATES" | \
+    # Extract only the fifth column
+    awk '{print $5}' | \
+    # Strip port without affecting ipv6 addresses (experimental)
+    sed "s/:[0-9+]*$//g" | \
+    # Sort addresses for uniq to work correctly
+    sort | \
+    # Group same occurrences of ip and prepend amount of occurences found
+    uniq -c | \
+    # Numerical sort in reverse order
+    sort -nr > \
+    $BAD_IP_LIST
+
 cat $BAD_IP_LIST
 if [ $KILL -eq 1 ]; then
 	IP_BAN_NOW=0
