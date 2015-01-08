@@ -18,6 +18,9 @@ cp LICENSE /usr/local/ddos/LICENSE > /dev/null 2>&1
 echo 'Adding: /usr/local/ddos/ignore.ip.list'
 cp ignore.ip.list /usr/local/ddos/ignore.ip.list > /dev/null 2>&1
 
+echo 'Adding: /usr/local/ddos/ignore.host.list'
+cp ignore.host.list /usr/local/ddos/ignore.host.list > /dev/null 2>&1
+
 echo 'Adding: /usr/local/ddos/ddos.sh'
 cp ddos.sh /usr/local/ddos/ddos.sh > /dev/null 2>&1
 chmod 0755 /usr/local/ddos/ddos.sh > /dev/null 2>&1

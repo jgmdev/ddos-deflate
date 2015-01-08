@@ -20,14 +20,16 @@ you use APF on your server in general, but deflate will work without it.)
 ### Notable Features
 
 * It is possible to whitelist IP addresses, via /usr/local/ddos/ignore.ip.list.
+* It is possible to whitelist hostnames, via /usr/local/ddos/ignore.host.list.
 * Simple configuration file: /usr/local/ddos/ddos.conf
 * IP addresses are automatically unblocked after a preconfigured time limit (default: 600 seconds)
 * The script can run at a chosen frequency via the configuration file (default: 1 minute)
 * You can receive email alerts when IP addresses are blocked.
+* Control blocking by connection state (see man netstat).
 
 ## Installation
 
-```
+```shell
 wget https://github.com/jgmdev/ddos-deflate/archive/master.zip
 unzip master.zip
 cd ddos-deflate-master
@@ -37,7 +39,7 @@ chmod 0700 install.sh
 
 ## Uninstallation
 
-```
+```shell
 cd ddos-deflate-master
 chmod 0700 uninstall.sh
 ./uninstall.sh

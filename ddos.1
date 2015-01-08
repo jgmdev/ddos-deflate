@@ -50,8 +50,16 @@ update or create cron job to run this script regularly
 block ip's making \fINUMBER_OF_CONNECTIONS\fR or more
 
 .SH WHITELISTING
-It is possible to whitelist IP addresses by adding a new line separated
-list of ip's to /usr/local/ddos/ignore.ip.list
+
+.PP
+It is possible to whitelist IP addresses by adding a 
+.B new-line 
+separated list of ip's to /usr/local/ddos/ignore.ip.list
+
+.PP
+It is also possible to whitelist hostnames by adding a 
+.B new-line 
+separated list of hosts to /usr/local/ddos/ignore.host.list
 
 .SH SETTINGS
 You can modify the script settings by editing /usr/local/ddos/ddos.conf

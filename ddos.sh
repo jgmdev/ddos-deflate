@@ -37,6 +37,27 @@ showhelp()
 	echo '-k | --kill: Block the offending ip making more than N connections'
 }
 
+# Gets a list of ip address to ignore with hostnames on the
+# ignore.host.list resolved to ip numbers
+ignore_list()
+{
+	for the_host in $(cat $IGNORE_HOST_LIST | grep -v "#"); do
+		host_ip=`nslookup $the_host | tail -n +3 | grep "Address" | awk '{print $2}'`
+
+		# In case an ip is given instead of hostname
+		# in the ignore.hosts.list file
+		if [ "$host_ip" = "" ]; then
+			echo $the_host
+		else
+            for ips in $host_ip; do
+                echo $ips
+            done
+		fi
+	done
+    
+    cat $IGNORE_IP_LIST
+}
+
 unbanip()
 {
 	UNBAN_SCRIPT=`mktemp /tmp/unban.XXXXXXXX`
@@ -142,7 +163,7 @@ if [ $KILL -eq 1 ]; then
 		if [ $CURR_LINE_CONN -lt $NO_OF_CONNECTIONS ]; then
 			break
 		fi
-		IGNORE_BAN=`grep -c $CURR_LINE_IP $IGNORE_IP_LIST`
+		IGNORE_BAN=`ignore_list | grep -c $CURR_LINE_IP`
 		if [ $IGNORE_BAN -ge 1 ]; then
 			continue
 		fi
