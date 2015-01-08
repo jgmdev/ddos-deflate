@@ -10,6 +10,15 @@ if [ -d '/usr/local/ddos' ]; then
 	echo -n ".."
 fi
 echo "done"
+
+echo; echo "Removing man page"
+if [ -e '/usr/share/man/man1/ddos.1' ]; then
+	rm -f /usr/share/man/man1/ddos.1
+fi
+if [ -e '/usr/share/man/man1/ddos.1.gz' ]; then
+	rm -f /usr/share/man/man1/ddos.1.gz
+fi
+
 echo; echo -n "Deleting cron job....."
 if [ -e '/etc/cron.d/ddos' ]; then
 	rm -f /etc/cron.d/ddos
