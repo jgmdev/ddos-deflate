@@ -11,8 +11,8 @@ if [ -d '/usr/local/ddos' ]; then
 fi
 echo "done"
 echo; echo -n "Deleting cron job....."
-if [ -e '/etc/cron.d/ddos.cron' ]; then
-	rm -f /etc/cron.d/ddos.cron
+if [ -e '/etc/cron.d/ddos' ]; then
+	rm -f /etc/cron.d/ddos
 	echo -n ".."
 fi
 echo "done"
