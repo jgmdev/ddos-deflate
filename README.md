@@ -1,4 +1,4 @@
-# ddos-deflate
+# DDoS Deflate
 Fork of DDoS Deflate http://deflate.medialayer.com/ with 
 fixes to work correctly under Debian.
 

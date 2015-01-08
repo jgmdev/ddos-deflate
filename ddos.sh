@@ -66,7 +66,6 @@ unbanip()
 add_to_cron()
 {
 	rm -f $CRON
-	echo "SHELL=/bin/bash" > $CRON
 	if [ $FREQ -le 2 ]; then
 		echo "0-59/$FREQ * * * * root /usr/local/ddos/ddos.sh >/dev/null 2>&1" >> $CRON
 	else
