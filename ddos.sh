@@ -54,6 +54,11 @@ ignore_list()
             done
 		fi
 	done
+	
+	# Get ip's of ethernet interfaces to prevent blocking it self.
+	for iface_ip in $(ifconfig | grep "inet " | awk '{print $2}' | sed "s/addr://g"); do
+		echo $iface_ip
+	done
     
     cat $IGNORE_IP_LIST
 }
