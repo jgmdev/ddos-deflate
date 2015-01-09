@@ -92,9 +92,9 @@ in daemon mode. (Default: 5)
 How many connections define a bad IP? Indicate that below. (Default: 150)
 
 .TP
-.B APF_BAN = 0|1
-Whether to use apf to block traffic, otherwise iptables is used. 
-Make sure your APF version is atleast 0.96 if set to 1. (Default: 1)
+.B FIREWALL = '<value>'
+The firewall to use for blocking/unblocking, valid values are:
+auto, apf, csf and iptables. (Default: "auto")
 
 .TP
 .B KILL = 0|1
