@@ -70,7 +70,7 @@ files to fit your needs.
 On this file you can add a list of host names to be whitelisted, for
 example:
 
-> googlebot.com
+> googlebot.com <br />
 > my-dynamic-ip.somehost.com
 
 **/etc/ddos/ignore.ip.list**
@@ -78,7 +78,7 @@ example:
 On this file you can add a list of ip addresses to be whitelisted, for
 example:
 
-> 12.43.63.13
+> 12.43.63.13 <br />
 > 129.134.131.2
 
 **/etc/ddos/ddos.conf**
@@ -93,8 +93,8 @@ If running on systemd:
 
 If running as classical init.d script:
 
-> /etc/init.d/ddos restart
-> or
+> /etc/init.d/ddos restart <br />
+> or <br />
 > service ddos restart
 
 When running the script as a cronjob no restarting is required.
