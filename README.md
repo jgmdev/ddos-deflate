@@ -23,9 +23,18 @@ you use APF on your server in general, but deflate will work without it.)
 * It is possible to whitelist hostnames, via /usr/local/ddos/ignore.host.list.
 * Simple configuration file: /usr/local/ddos/ddos.conf
 * IP addresses are automatically unblocked after a preconfigured time limit (default: 600 seconds)
-* The script can run at a chosen frequency via the configuration file (default: 1 minute)
+* The script can run as a cron job at chosen frequency via the configuration file (default: 1 minute)
+* The script can run as a daemon at chosen frequency via the configuration file (default: 5 seconds)
 * You can receive email alerts when IP addresses are blocked.
 * Control blocking by connection state (see man netstat).
+
+### Original Author
+
+Copyright (C) 2005, Zaf <zaf@vsnl.com>
+
+### Maintainer
+
+Jefferson González <jgmdev@gmail.com>
 
 ## Installation
 
