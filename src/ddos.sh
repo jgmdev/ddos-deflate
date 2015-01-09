@@ -342,7 +342,7 @@ while [ $1 ]; do
 			exit
 			;;
 		'--kill' | '-k' )
-			only_root
+			su_required
 			KILL=1
 			;;
 		 *[0-9]* )
