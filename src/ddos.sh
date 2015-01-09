@@ -93,12 +93,17 @@ ban_ip_list()
 	echo '#!/bin/sh' > $UNBAN_SCRIPT
 	echo "sleep $BAN_PERIOD" >> $UNBAN_SCRIPT
 	
-	if [ $APF_BAN -eq 1 ]; then
+	if [ "$FIREWALL" = "apf" ]; then
 		while read line; do
 			echo "$APF -u $line" >> $UNBAN_SCRIPT
 			echo $line >> $UNBAN_IP_LIST
 		done < $BANNED_IP_LIST
-	else
+	elif [ "$FIREWALL" = "csf" ]; then
+		while read line; do
+			echo "$CSF -dr $line" >> $UNBAN_SCRIPT
+			echo $line >> $UNBAN_IP_LIST
+		done < $BANNED_IP_LIST
+	elif [ "$FIREWALL" = "iptables" ]; then
 		while read line; do
 			echo "$IPT -D INPUT -s $line -j DROP" >> $UNBAN_SCRIPT
 			echo $line >> $UNBAN_IP_LIST
@@ -167,28 +172,40 @@ check_connections()
 		$BAD_IP_LIST
 
 	cat $BAD_IP_LIST
+	
 	if [ $KILL -eq 1 ]; then
+	
 		IP_BAN_NOW=0
+		
 		while read line; do
 			CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
 			CURR_LINE_IP=$(echo $line | cut -d" " -f2)
+			
 			if [ $CURR_LINE_CONN -lt $NO_OF_CONNECTIONS ]; then
 				break
 			fi
+			
 			IGNORE_BAN=`ignore_list | grep -c $CURR_LINE_IP`
+			
 			if [ $IGNORE_BAN -ge 1 ]; then
 				continue
 			fi
+			
 			IP_BAN_NOW=1
+			
 			echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
 			echo $CURR_LINE_IP >> $BANNED_IP_LIST
 			echo $CURR_LINE_IP >> "${CONF_PATH}${IGNORE_IP_LIST}"
-			if [ $APF_BAN -eq 1 ]; then
+			
+			if [ "$FIREWALL" = "apf" ]; then
 				$APF -d $CURR_LINE_IP
-			else
+			elif [ "$FIREWALL" = "csf" ]; then
+				$CSF -d $CURR_LINE_IP
+			elif [ "$FIREWALL" = "iptables" ]; then
 				$IPT -I INPUT -s $CURR_LINE_IP -j DROP
 			fi
 		done < $BAD_IP_LIST
+		
 		if [ $IP_BAN_NOW -eq 1 ]; then
 			dt=`date`
 			if [ $EMAIL_TO != "" ]; then
@@ -197,6 +214,7 @@ check_connections()
 			ban_ip_list
 		fi
 	fi
+	
 	rm -f $TMP_PREFIX.*
 }
 
@@ -291,6 +309,8 @@ daemon_loop()
 	trap 'on_daemon_exit' TERM
 	trap 'on_daemon_exit' EXIT
 	
+	detect_firewall
+	
 	while true; do
 		check_connections
 		sleep $DAEMON_FREQ
@@ -305,6 +325,35 @@ daemon_status()
 		echo "ddos status: running with pid $current_pid"
 	else
 		echo "ddos status: not running"
+	fi
+}
+
+detect_firewall()
+{
+	if [ "$FIREWALL" = "auto" ] || [ "$FIREWALL" = "" ]; then
+		apf_where=`whereis apf`;
+		csf_where=`whereis csf`;
+		ipt_where=`whereis iptables`;
+		
+		if [ -e "$APF" ]; then
+			FIREWALL="apf"
+		elif [ -e "$CSF" ]; then
+			FIREWALL="csf"
+		elif [ -e "$IPT" ]; then
+			FIREWALL="iptables"
+		elif [ "$apf_where" != "apf:" ]; then
+			FIREWALL="apf"
+			APF="apf"
+		elif [ "$csf_where" != "csf:" ]; then
+			FIREWALL="csf"
+			CSF="csf"
+		elif [ "$ipt_where" != "iptables:" ]; then
+			FIREWALL="iptables"
+			IPT="iptables"
+		else
+			echo "error: No valid firewall found."
+			exit 1
+		fi
 	fi
 }
 
@@ -358,4 +407,7 @@ while [ $1 ]; do
 	shift
 done
 
+detect_firewall
 check_connections
+
+exit 0
