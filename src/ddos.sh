@@ -41,8 +41,8 @@ showhelp()
 	echo '-i | --ignore-list: List whitelisted ip addresses.'
 	echo '-d | --start: Initialize a daemon to monitor connections.'
 	echo '-s | --stop: Stop the daemon.'
-	echo '-t | --status: Show status of daemon and pid if current running.'
-	echo '-k | --kill: Block the offending ip making more than N connections'
+	echo '-t | --status: Show status of daemon and pid if currently running.'
+	echo '-k | --kill: Block all ip addresses making more than N connections'
 }
 
 # Check if super user is executing the 
