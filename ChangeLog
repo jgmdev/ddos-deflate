@@ -1,0 +1,27 @@
+ddos (0.7) stable; urgency=low
+  
+  * Moved configuration files to /etc/ddos/
+  * Whitelist hostnames, via /etc/ddos/ignore.host.list.
+  * The script can run as a daemon with monitoring frequency in seconds defined by DAEMON_FREQ
+  * Auto-detection of available firewall for use.
+  * Added support for CSF file.
+  * Added man page.
+  * Added init.d script.
+  * Added systemd service support.
+  * Added support for DESTDIR and a Makefile for easier packaging.
+  * Improved installer and uninstaller.
+  * Installer does not overrides configuration files.
+  * New configuration option FIREWALL (see man ddos).
+  * New configuration option CONN_STATES (see man ddos).
+
+ -- Jefferson González <jgmdev@gmail.com>  Fri, 09 Jan 2015 17:27:01 +0200
+
+ddos (0.6) stable; urgency=low
+
+  * It is possible to whitelist IP addresses, via /usr/local/ddos/ignore.ip.list.
+  * Simple configuration file: /usr/local/ddos/ddos.conf
+  * IP addresses are automatically unblocked after a preconfigured time limit (default: 600 seconds)
+  * The script can run at a chosen frequency via the configuration file (default: 1 minute)
+  * You can receive email alerts when IP addresses are blocked.
+
+ -- Zaf <zaf@vsnl.com>  Mon, 1 Jan 2005 01:00:00 +0200
