@@ -1,6 +1,6 @@
 # DDoS Deflate
 Fork of DDoS Deflate http://deflate.medialayer.com/ with 
-fixes to work correctly under Debian.
+fixes, improvements and new features.
 
 **Original Author:** Zaf <zaf@vsnl.com> (Copyright (C) 2005)
 
@@ -31,6 +31,8 @@ you use APF on your server in general, but deflate will work without it.)
 * The script can run as a daemon at chosen frequency via the configuration file (default: 5 seconds)
 * You can receive email alerts when IP addresses are blocked.
 * Control blocking by connection state (see man netstat).
+* Auto-detection of firewall.
+* Support for APF, CSF and iptables.
 
 ## Installation
 
