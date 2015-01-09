@@ -33,7 +33,6 @@ you use APF on your server in general, but deflate will work without it.)
 wget https://github.com/jgmdev/ddos-deflate/archive/master.zip
 unzip master.zip
 cd ddos-deflate-master
-chmod 0700 install.sh
 ./install.sh
 ```
 
@@ -41,6 +40,5 @@ chmod 0700 install.sh
 
 ```shell
 cd ddos-deflate-master
-chmod 0700 uninstall.sh
 ./uninstall.sh
 ```
