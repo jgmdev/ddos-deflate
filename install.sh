@@ -53,8 +53,8 @@ if [ -d /etc/init.d ]; then
 	UPDATERC_PATH=`whereis update-rc.d`
 	if [ "$UPDATERC_PATH" != "update-rc.d:" ]; then
 		echo "Activating ddos service..."
-		update-rc.d ddos enable
-		service start ddos
+		update-rc.d ddos defaults
+		service ddos start
 	else
 		echo "ddos service needs to be manually started..."
 	fi

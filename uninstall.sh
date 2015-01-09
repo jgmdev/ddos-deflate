@@ -23,8 +23,8 @@ echo; echo -n "Deleting init service....."
 if [ -e '/etc/init.d/ddos' ]; then
 	UPDATERC_PATH=`whereis update-rc.d`
 	if [ "$UPDATERC_PATH" != "update-rc.d:" ]; then
-		update-rc.d ddos disable
 		service stop ddos
+		update-rc.d ddos remove
 	fi
 	rm -f /etc/init.d/ddos
 fi
