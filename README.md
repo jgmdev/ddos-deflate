@@ -101,8 +101,9 @@ When running the script as a cronjob no restarting is required.
 
 ## CLI Usage
 
-ddos [OPTIONS] [N]
-N : number of tcp/udp	connections (default 150)
+**ddos** [OPTIONS] [N]
+
+*N : number of tcp/udp	connections (default 150)*
 
 #### OPTIONS
 
