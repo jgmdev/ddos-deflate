@@ -49,6 +49,12 @@ update or create cron job to run this script regularly
 \fB\-i\fR, \fB\-\-ignore\-list\fR
 dsiplay a list of currently whitelisted ip addresses
 .TP
+\fB\-d\fR, \fB\-\-start\fR
+initialize a daemon to monitor connections
+.TP
+\fB\-s\fR, \fB\-\-stop\fR
+stop the daemon
+.TP
 \fB\-k\fR, \fB\-\-kill\fR <NUMBER_OF_CONNECTIONS>
 block ip's making \fINUMBER_OF_CONNECTIONS\fR or more
 
@@ -74,6 +80,11 @@ changed, run the script with --cron option so that the new frequency
 takes effect. (Default: 1)
 
 .TP
+.B DAEMON_FREQ = <number>
+Frequency in seconds to monitor connections when running the script
+in daemon mode. (Default: 5)
+
+.TP
 .B NO_OF_CONNECTIONS = <number>
 How many connections define a bad IP? Indicate that below. (Default: 150)
 
@@ -94,7 +105,7 @@ switch to ban them manually.
 .TP
 .B EMAIL_TO = '<email>'
 An email is sent to the following address when an IP is banned.
-Blank would suppress sending of mails. (Default: root)
+Leaving this value empty would suppress sending of mails. (Default: root)
 
 .TP
 .B BAN_PERIOD = <number>
@@ -116,6 +127,8 @@ Connection states separated by pipe operator to block. See:
 .B /usr/local/ddos/ddos.conf
 .br
 .B /usr/local/ddos/ignore.ip.list
+.br
+.B /usr/local/ddos/ignore.host.list
 
 .SH AUTHOR
 Zaf <zaf@vsnl.com> (Copyright (C) 2005)
