@@ -58,7 +58,7 @@ echo;
 
 if [ -d /etc/init.d ]; then
 	echo -n 'Setting up init script...'
-	mkdir -p "$DESTDIR/etc/init.d/ddos/"
+	mkdir -p "$DESTDIR/etc/init.d/"
 	cp src/ddos.initd "$DESTDIR/etc/init.d/ddos" > /dev/null 2>&1
 	chmod 0755 "$DESTDIR/etc/init.d/ddos" > /dev/null 2>&1
 	echo " (done)"
