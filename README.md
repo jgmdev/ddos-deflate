@@ -84,7 +84,8 @@ example:
 **/etc/ddos/ddos.conf**
 
 The behaviour of the ddos script is modified by this configuration file.
-For more details see **man ddos*
+For more details see **man ddos** which has documentation of the
+different configuration options.
 
 After you modify the config files you will need to restart the daemon.
 If running on systemd:
