@@ -66,15 +66,15 @@ block ip's making \fINUMBER_OF_CONNECTIONS\fR or more
 .PP
 It is possible to whitelist IP addresses by adding a 
 .B new-line 
-separated list of ip's to /usr/local/ddos/ignore.ip.list
+separated list of ip's to /etc/ddos/ignore.ip.list
 
 .PP
 It is also possible to whitelist hostnames by adding a 
 .B new-line 
-separated list of hosts to /usr/local/ddos/ignore.host.list
+separated list of hosts to /etc/ddos/ignore.host.list
 
 .SH SETTINGS
-You can modify the script settings by editing /usr/local/ddos/ddos.conf
+You can modify the script settings by editing /etc/ddos/ddos.conf
 
 .TP
 .B FREQ = <number>
@@ -127,11 +127,11 @@ Connection states separated by pipe operator to block. See:
 .br
 .B /usr/local/sbin/ddos
 .br
-.B /usr/local/ddos/ddos.conf
+.B /etc/ddos/ddos.conf
 .br
-.B /usr/local/ddos/ignore.ip.list
+.B /etc/ddos/ignore.ip.list
 .br
-.B /usr/local/ddos/ignore.host.list
+.B /etc/ddos/ignore.host.list
 
 .SH AUTHOR
 Zaf <zaf@vsnl.com> (Copyright (C) 2005)

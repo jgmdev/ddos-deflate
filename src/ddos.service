@@ -1,0 +1,12 @@
+[Unit]
+Description=(D)Dos Deflate
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/sbin/ddos --start
+ExecStop=/usr/local/sbin/ddos --stop
+#User=root
+
+[Install]
+WantedBy=multi-user.target

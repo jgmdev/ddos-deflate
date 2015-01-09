@@ -33,7 +33,7 @@ head()
 showhelp()
 {
 	head
-	echo 'Usage: ddos.sh [OPTIONS] [N]'
+	echo 'Usage: ddos [OPTIONS] [N]'
 	echo 'N : number of tcp/udp	connections (default 150)'
 	echo 'OPTIONS:'
 	echo '-h | --help: Show	this help screen'

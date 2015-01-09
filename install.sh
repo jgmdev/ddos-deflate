@@ -71,6 +71,22 @@ elif [ -d /etc/cron.d ]; then
 	echo -n 'Creating cron to run script every minute...'
 	/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
 	echo " (done)"
+elif [ -d /usr/lib/systemd/system ]; then
+	echo -n 'Setting up systemd service...'
+	cp src/ddos.service /usr/lib/systemd/system/ > /dev/null 2>&1
+	chmod 0755 /usr/lib/systemd/system/ddos.service > /dev/null 2>&1
+	echo " (done)"
+	
+	# Check if update-rc is installed and activate service
+	SYSTEMCTL_PATH=`whereis systemctl`
+	if [ "$SYSTEMCTL_PATH" != "systemctl:" ]; then
+		echo -n "Activating ddos service..."
+		systemctl enable ddos > /dev/null 2>&1
+		systemctl start ddos > /dev/null 2>&1
+		echo " (done)"
+	else
+		echo "ddos service needs to be manually started... (warning)"
+	fi
 fi
 
 echo; echo 'Installation has completed!'
