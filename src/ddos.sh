@@ -35,8 +35,9 @@ showhelp()
 	head
 	echo 'Usage: ddos [OPTIONS] [N]'
 	echo 'N : number of tcp/udp	connections (default 150)'
+	echo
 	echo 'OPTIONS:'
-	echo '-h | --help: Show	this help screen'
+	echo '-h | --help: Show this help screen'
 	echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
 	echo '-i | --ignore-list: List whitelisted ip addresses.'
 	echo '-d | --start: Initialize a daemon to monitor connections.'
@@ -85,9 +86,9 @@ ignore_list()
 
 ban_ip_list()
 {
-	UNBAN_SCRIPT=`mktemp /tmp/unban.XXXXXXXX`
-	TMP_FILE=`mktemp /tmp/unban.XXXXXXXX`
-	UNBAN_IP_LIST=`mktemp /tmp/unban.XXXXXXXX`
+	UNBAN_SCRIPT=`mktemp /tmp/unban.sh.XXXXXXXX`
+	TMP_FILE=`mktemp /tmp/unban.tmp.XXXXXXXX`
+	UNBAN_IP_LIST=`mktemp /tmp/unban.ip.XXXXXXXX`
 	
 	echo '#!/bin/sh' > $UNBAN_SCRIPT
 	echo "sleep $BAN_PERIOD" >> $UNBAN_SCRIPT
@@ -205,6 +206,8 @@ on_daemon_exit()
 	if [ -e /var/run/ddos.pid ]; then
 		rm -f /var/run/ddos.pid
 	fi
+	
+	exit 0
 }
 
 # Return the current process id of the daemon or 0 if not running
@@ -267,7 +270,6 @@ stop_daemon()
 	echo "stopping ddos daemon..."
 	
 	kill $(daemon_pid)
-	kill -9 $(daemon_pid)
 	
 	if [ -e /var/run/ddos.pid ]; then
 		rm -f /var/run/ddos.pid
