@@ -8,7 +8,7 @@
 #  read the LICENSE file before you make copies or distribute this program   #
 ##############################################################################
 
-CONF_PATH="/usr/local/ddos"
+CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 
 load_conf()
@@ -25,7 +25,7 @@ load_conf()
 
 head()
 {
-	echo "DDoS-Deflate version 0.6"
+	echo "DDoS-Deflate version 0.7"
 	echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
 	echo
 }
@@ -41,6 +41,7 @@ showhelp()
 	echo '-i | --ignore-list: List whitelisted ip addresses.'
 	echo '-d | --start: Initialize a daemon to monitor connections.'
 	echo '-s | --stop: Stop the daemon.'
+	echo '-t | --status: Show status of daemon and pid if current running.'
 	echo '-k | --kill: Block the offending ip making more than N connections'
 }
 
@@ -201,24 +202,39 @@ check_connections()
 # Executed as a cleanup function when the daemon is stopped
 on_daemon_exit()
 {
-	if [ -e /var/run/ddos.lock ]; then
-		rm -f /var/run/ddos.lock
+	if [ -e /var/run/ddos.pid ]; then
+		rm -f /var/run/ddos.pid
 	fi
+}
+
+# Return the current process id of the daemon or 0 if not running
+daemon_pid()
+{
+	if [ -e /var/run/ddos.pid ]; then
+		echo $(cat /var/run/ddos.pid)
+		
+		return
+	fi
+	
+	echo "0"
 }
 
 # Check if daemon us running.
 # Outputs 1 if running 0 if not.
 daemon_running()
 {
-	if [ -e /var/run/ddos.lock ]; then
+	if [ -e /var/run/ddos.pid ]; then
 		running_pid=$(ps -A | grep ddos | awk '{print $1}')
 		
 		if [ "$running_pid" != "" ]; then
-			current_pid=$(cat /var/run/ddos.lock)
+			current_pid=$(daemon_pid)
 			
-			if [ "$current_pid" = "$running_pid" ]; then
-				echo "1"
-			fi
+			for pid_num in $running_pid; do
+				if [ "$current_pid" = "$pid_num" ]; then
+					echo "1"
+					return
+				fi
+			done
 		fi
 	fi
 
@@ -234,6 +250,8 @@ start_daemon()
 		exit 0
 	fi
 	
+	echo "starting ddos daemon..."
+	
 	nohup $0 -l > /dev/null 2>&1 &
 }
 
@@ -248,10 +266,11 @@ stop_daemon()
 	
 	echo "stopping ddos daemon..."
 	
-	pkill ddos
+	kill $(daemon_pid)
+	kill -9 $(daemon_pid)
 	
-	if [ -e /var/run/ddos.lock ]; then
-		rm -f /var/run/ddos.lock
+	if [ -e /var/run/ddos.pid ]; then
+		rm -f /var/run/ddos.pid
 	fi
 }
 
@@ -263,7 +282,7 @@ daemon_loop()
 		exit 0
 	fi
 	
-	echo "$$" > /var/run/ddos.lock
+	echo "$$" > /var/run/ddos.pid
 	
 	trap 'on_daemon_exit' INT
 	trap 'on_daemon_exit' QUIT
@@ -274,6 +293,17 @@ daemon_loop()
 		check_connections
 		sleep $DAEMON_FREQ
 	done
+}
+
+daemon_status()
+{
+	current_pid=$(daemon_pid)
+	
+	if [ $(daemon_running) = "1" ]; then
+		echo "ddos status: running with pid $current_pid"
+	else
+		echo "ddos status: not running"
+	fi
 }
 
 load_conf
@@ -300,6 +330,10 @@ while [ $1 ]; do
 			;;
 		'--stop' | '-s' )
 			stop_daemon
+			exit
+			;;
+		'--status' | '-t' )
+			daemon_status
 			exit
 			;;
 		'--loop' | '-l' )

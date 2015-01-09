@@ -19,6 +19,16 @@ if [ -e '/usr/share/man/man1/ddos.1.gz' ]; then
 	rm -f /usr/share/man/man1/ddos.1.gz
 fi
 
+echo; echo -n "Deleting init service....."
+if [ -e '/etc/init.d/ddos' ]; then
+	UPDATERC_PATH=`whereis update-rc.d`
+	if [ "$UPDATERC_PATH" != "update-rc.d:" ]; then
+		update-rc.d ddos disable
+		service stop ddos
+	fi
+	rm -f /etc/init.d/ddos
+fi
+
 echo; echo -n "Deleting cron job....."
 if [ -e '/etc/cron.d/ddos' ]; then
 	rm -f /etc/cron.d/ddos
