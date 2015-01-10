@@ -118,7 +118,7 @@ unban_ip_list()
 			echo "$IPT -D INPUT -s $line -j DROP" >> $UNBAN_SCRIPT
 		fi
 		
-		echo "echo \"\$(date +'[%Y-%m-%d %T]') $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
+		echo "echo \"\$(date +'[%Y-%m-%d %T]') unbanned $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
 		echo $line >> $UNBAN_IP_LIST
 	done < $BANNED_IP_LIST
 	
