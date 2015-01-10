@@ -33,6 +33,7 @@ you use APF on your server in general, but deflate will work without it.)
 * Control blocking by connection state (see man netstat).
 * Auto-detection of firewall.
 * Support for APF, CSF and iptables.
+* Logs events to /var/log/ddos.log
 
 ## Installation
 
