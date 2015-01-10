@@ -10,6 +10,7 @@ ddos (0.7) stable; urgency=low
   * Added systemd service support.
   * Added support for DESTDIR and a Makefile for easier packaging.
   * Added command option to list whitelisted addresses.
+  * Added --view|-v option.
   * Improved installer and uninstaller.
   * Installer does not overrides configuration files.
   * New configuration option FIREWALL (see man ddos).
@@ -17,6 +18,7 @@ ddos (0.7) stable; urgency=low
   * Check ip of local interfaces and whitelist them to prevent self bans.
   * Improved netstat command to support ipv6 (experimental).
   * Removed .cron extension of generated cron file because it seems to cause issues.
+  * Removed KILL from conf (use -v|--view instead).
 
  -- Jefferson González <jgmdev@gmail.com>  Fri, 09 Jan 2015 17:27:01 +0200
 

@@ -112,11 +112,11 @@ When running the script as a cronjob no restarting is required.
 
 **-h | --help:**
 
-   Show the help screen
+   Show the help screen.
     
 **-c | --cron:**
 
-   Create cron job to run the script regularly (default 1 mins)
+   Create cron job to run the script regularly (default 1 mins).
     
 **-i | --ignore-list:**
 
@@ -133,7 +133,11 @@ When running the script as a cronjob no restarting is required.
 **-t | --status:**
 
    Show status of daemon and pid if currently running.
+   
+**-v | --view:**
+
+   Display active connections to the server.
     
 **-k | --kill:**
 
-   Block all ip addresses making more than N connections
+   Block all ip addresses making more than N connections.

@@ -1,6 +1,9 @@
 #!/bin/bash
 ##############################################################################
-# DDoS-Deflate version 0.6 Author: Zaf <zaf@vsnl.com>                        #
+# DDoS-Deflate version 0.7 Author: Zaf <zaf@vsnl.com>                        #
+##############################################################################
+# Contributors:                                                              #
+# Jefferson González <jgmdev@gmail.com>                                      #
 ##############################################################################
 # This program is distributed under the "Artistic License" Agreement         #
 #                                                                            #
@@ -39,10 +42,11 @@ showhelp()
 	echo 'OPTIONS:'
 	echo '-h | --help: Show this help screen'
 	echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
-	echo '-i | --ignore-list: List whitelisted ip addresses.'
-	echo '-d | --start: Initialize a daemon to monitor connections.'
-	echo '-s | --stop: Stop the daemon.'
-	echo '-t | --status: Show status of daemon and pid if currently running.'
+	echo '-i | --ignore-list: List whitelisted ip addresses'
+	echo '-d | --start: Initialize a daemon to monitor connections'
+	echo '-s | --stop: Stop the daemon'
+	echo '-t | --status: Show status of daemon and pid if currently running'
+	echo '-v | --view: Display active connections to the server'
 	echo '-k | --kill: Block all ip addresses making more than N connections'
 }
 
@@ -84,7 +88,9 @@ ignore_list()
     cat "${CONF_PATH}${IGNORE_IP_LIST}"
 }
 
-ban_ip_list()
+# Generates a shell script that unbans a list of ip's after the
+# amount of time given on BAN_PERIOD
+unban_ip_list()
 {
 	UNBAN_SCRIPT=`mktemp /tmp/unban.sh.XXXXXXXX`
 	TMP_FILE=`mktemp /tmp/unban.tmp.XXXXXXXX`
@@ -137,17 +143,13 @@ add_to_cron()
 	chmod 644 $CRON
 }
 
-# Check active connections and ban if neccessary
+# Check active connections and ban if neccessary.
 check_connections()
 {
 	su_required
 
 	TMP_PREFIX='/tmp/ddos'
 	TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
-	BANNED_IP_MAIL=`$TMP_FILE`
-	BANNED_IP_LIST=`$TMP_FILE`
-	echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
-	echo >>	$BANNED_IP_MAIL
 	BAD_IP_LIST=`$TMP_FILE`
 
 	# Original command to get ip's
@@ -168,54 +170,99 @@ check_connections()
 		# Group same occurrences of ip and prepend amount of occurences found
 		uniq -c | \
 		# Numerical sort in reverse order
-		sort -nr > \
+		sort -nr | \
+		# Only store connections that exceed max allowed
+		awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
 		$BAD_IP_LIST
-
-	cat $BAD_IP_LIST
+		
+	FOUND=$(cat $BAD_IP_LIST)
+	
+	if [ "$FOUND" = "" ]; then
+		rm -f $BAD_IP_LIST
+		
+		if [ $KILL -eq 1 ]; then
+			echo "No connections exceeding max allowed."
+		fi
+		
+		return 0
+	fi
 	
 	if [ $KILL -eq 1 ]; then
+		echo "List of connections that exceed max allowed"
+		echo "==========================================="
+		cat $BAD_IP_LIST
+	fi
 	
-		IP_BAN_NOW=0
+	BANNED_IP_MAIL=`$TMP_FILE`
+	BANNED_IP_LIST=`$TMP_FILE`
+	
+	echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
+	echo >>	$BANNED_IP_MAIL
+	
+	IP_BAN_NOW=0
+	
+	while read line; do
+		CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
+		CURR_LINE_IP=$(echo $line | cut -d" " -f2)
 		
-		while read line; do
-			CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
-			CURR_LINE_IP=$(echo $line | cut -d" " -f2)
-			
-			if [ $CURR_LINE_CONN -lt $NO_OF_CONNECTIONS ]; then
-				break
-			fi
-			
-			IGNORE_BAN=`ignore_list | grep -c $CURR_LINE_IP`
-			
-			if [ $IGNORE_BAN -ge 1 ]; then
-				continue
-			fi
-			
-			IP_BAN_NOW=1
-			
-			echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
-			echo $CURR_LINE_IP >> $BANNED_IP_LIST
-			echo $CURR_LINE_IP >> "${CONF_PATH}${IGNORE_IP_LIST}"
-			
-			if [ "$FIREWALL" = "apf" ]; then
-				$APF -d $CURR_LINE_IP
-			elif [ "$FIREWALL" = "csf" ]; then
-				$CSF -d $CURR_LINE_IP
-			elif [ "$FIREWALL" = "iptables" ]; then
-				$IPT -I INPUT -s $CURR_LINE_IP -j DROP
-			fi
-		done < $BAD_IP_LIST
+		IGNORE_BAN=`ignore_list | grep -c $CURR_LINE_IP`
 		
-		if [ $IP_BAN_NOW -eq 1 ]; then
+		if [ $IGNORE_BAN -ge 1 ]; then
+			continue
+		fi
+		
+		IP_BAN_NOW=1
+		
+		echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
+		echo $CURR_LINE_IP >> $BANNED_IP_LIST
+		echo $CURR_LINE_IP >> "${CONF_PATH}${IGNORE_IP_LIST}"
+		
+		if [ "$FIREWALL" = "apf" ]; then
+			$APF -d $CURR_LINE_IP
+		elif [ "$FIREWALL" = "csf" ]; then
+			$CSF -d $CURR_LINE_IP
+		elif [ "$FIREWALL" = "iptables" ]; then
+			$IPT -I INPUT -s $CURR_LINE_IP -j DROP
+		fi
+	done < $BAD_IP_LIST
+	
+	if [ $IP_BAN_NOW -eq 1 ]; then
+		if [ $EMAIL_TO != "" ]; then
 			dt=`date`
-			if [ $EMAIL_TO != "" ]; then
-				cat $BANNED_IP_MAIL | mail -s "IP addresses banned on $dt" $EMAIL_TO
-			fi
-			ban_ip_list
+			cat $BANNED_IP_MAIL | mail -s "IP addresses banned on $dt" $EMAIL_TO
+		fi
+		
+		unban_ip_list
+		
+		if [ $KILL -eq 1 ]; then
+			echo "==========================================="
+			echo "Banned IP addresses:"
+			echo "==========================================="
+			cat $BANNED_IP_LIST
 		fi
 	fi
 	
 	rm -f $TMP_PREFIX.*
+}
+
+# Active connections to server.
+view_connections()
+{	
+	netstat -ntu | \
+		# Strip netstat heading
+		tail -n +3 | \
+		# Match only the given connection states
+		grep -E "$CONN_STATES" | \
+		# Extract only the fifth column
+		awk '{print $5}' | \
+		# Strip port without affecting ipv6 addresses (experimental)
+		sed "s/:[0-9+]*$//g" | \
+		# Sort addresses for uniq to work correctly
+		sort | \
+		# Group same occurrences of ip and prepend amount of occurences found
+		uniq -c | \
+		# Numerical sort in reverse order
+		sort -nr
 }
 
 # Executed as a cleanup function when the daemon is stopped
@@ -359,6 +406,8 @@ detect_firewall()
 
 load_conf
 
+KILL=0
+
 while [ $1 ]; do
 	case $1 in
 		'-h' | '--help' | '?' )
@@ -392,6 +441,10 @@ while [ $1 ]; do
 			daemon_loop
 			exit
 			;;
+		'--view' | '-v' )
+			view_connections
+			exit
+			;;
 		'--kill' | '-k' )
 			su_required
 			KILL=1
@@ -404,10 +457,15 @@ while [ $1 ]; do
 			exit
 			;;
 	esac
+	
 	shift
 done
 
-detect_firewall
-check_connections
+if [ $KILL -eq 1 ]; then
+	detect_firewall
+	check_connections
+else
+	showhelp
+fi
 
 exit 0
