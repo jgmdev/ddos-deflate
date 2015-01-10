@@ -54,6 +54,14 @@ cp man/ddos.1 "$DESTDIR/usr/share/man/man1/ddos.1" > /dev/null 2>&1
 chmod 0644 "$DESTDIR/usr/share/man/man1/ddos.1" > /dev/null 2>&1
 echo " (done)"
 
+if [ -d /etc/logrotate.d ]; then
+	echo -n 'Adding logrotate configuration...'
+	mkdir -p "$DESTDIR/etc/logrotate.d/"
+	cp src/ddos.logrotate "$DESTDIR/etc/logrotate.d/ddos" > /dev/null 2>&1
+	chmod 0644 /etc/logrotate.d/ddos
+	echo " (done)"
+fi
+
 echo;
 
 if [ -d /etc/init.d ]; then

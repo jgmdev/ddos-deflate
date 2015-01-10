@@ -62,6 +62,16 @@ su_required()
 	fi
 }
 
+log_msg()
+{
+	if [ ! -e /var/log/ddos.log ]; then
+		touch /var/log/ddos.log
+		chmod 0640 /var/log/ddos.log
+	fi
+	
+	echo "$(date +'[%Y-%m-%d %T]') $1" >> /var/log/ddos.log
+}
+
 # Gets a list of ip address to ignore with hostnames on the
 # ignore.host.list resolved to ip numbers
 ignore_list()
@@ -99,22 +109,18 @@ unban_ip_list()
 	echo '#!/bin/sh' > $UNBAN_SCRIPT
 	echo "sleep $BAN_PERIOD" >> $UNBAN_SCRIPT
 	
-	if [ "$FIREWALL" = "apf" ]; then
-		while read line; do
+	while read line; do
+		if [ "$FIREWALL" = "apf" ]; then
 			echo "$APF -u $line" >> $UNBAN_SCRIPT
-			echo $line >> $UNBAN_IP_LIST
-		done < $BANNED_IP_LIST
-	elif [ "$FIREWALL" = "csf" ]; then
-		while read line; do
+		elif [ "$FIREWALL" = "csf" ]; then
 			echo "$CSF -dr $line" >> $UNBAN_SCRIPT
-			echo $line >> $UNBAN_IP_LIST
-		done < $BANNED_IP_LIST
-	elif [ "$FIREWALL" = "iptables" ]; then
-		while read line; do
+		elif [ "$FIREWALL" = "iptables" ]; then
 			echo "$IPT -D INPUT -s $line -j DROP" >> $UNBAN_SCRIPT
-			echo $line >> $UNBAN_IP_LIST
-		done < $BANNED_IP_LIST
-	fi
+		fi
+		
+		echo "echo \"\$(date +'[%Y-%m-%d %T]') $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
+		echo $line >> $UNBAN_IP_LIST
+	done < $BANNED_IP_LIST
 	
 	echo "grep -v --file=$UNBAN_IP_LIST ${CONF_PATH}${IGNORE_IP_LIST} > $TMP_FILE" >> $UNBAN_SCRIPT
 	echo "mv $TMP_FILE ${CONF_PATH}${IGNORE_IP_LIST}" >> $UNBAN_SCRIPT
@@ -141,6 +147,8 @@ add_to_cron()
 	fi
 	
 	chmod 644 $CRON
+	
+	log_msg "added cron job"
 }
 
 # Check active connections and ban if neccessary.
@@ -224,6 +232,8 @@ check_connections()
 		elif [ "$FIREWALL" = "iptables" ]; then
 			$IPT -I INPUT -s $CURR_LINE_IP -j DROP
 		fi
+		
+		log_msg "banned $CURR_LINE_IP for $BAN_PERIOD"
 	done < $BAD_IP_LIST
 	
 	if [ $IP_BAN_NOW -eq 1 ]; then
@@ -321,6 +331,8 @@ start_daemon()
 	echo "starting ddos daemon..."
 	
 	nohup $0 -l > /dev/null 2>&1 &
+	
+	log_msg "daemon started"
 }
 
 stop_daemon()
@@ -339,6 +351,8 @@ stop_daemon()
 	if [ -e /var/run/ddos.pid ]; then
 		rm -f /var/run/ddos.pid
 	fi
+	
+	log_msg "daemon stopped"
 }
 
 daemon_loop()
@@ -399,6 +413,7 @@ detect_firewall()
 			IPT="iptables"
 		else
 			echo "error: No valid firewall found."
+			log_msg "error: no valid firewall found"
 			exit 1
 		fi
 	fi

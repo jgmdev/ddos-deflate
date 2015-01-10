@@ -11,6 +11,7 @@ ddos (0.7) stable; urgency=low
   * Added support for DESTDIR and a Makefile for easier packaging.
   * Added command option to list whitelisted addresses.
   * Added --view|-v option.
+  * Added logging.
   * Improved installer and uninstaller.
   * Installer does not overrides configuration files.
   * New configuration option FIREWALL (see man ddos).
