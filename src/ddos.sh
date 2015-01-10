@@ -233,7 +233,7 @@ check_connections()
 			$IPT -I INPUT -s $CURR_LINE_IP -j DROP
 		fi
 		
-		log_msg "banned $CURR_LINE_IP for $BAN_PERIOD"
+		log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections for ban period $BAN_PERIOD"
 	done < $BAD_IP_LIST
 	
 	if [ $IP_BAN_NOW -eq 1 ]; then
