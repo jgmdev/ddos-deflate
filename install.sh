@@ -58,7 +58,7 @@ if [ -d /etc/logrotate.d ]; then
 	echo -n 'Adding logrotate configuration...'
 	mkdir -p "$DESTDIR/etc/logrotate.d/"
 	cp src/ddos.logrotate "$DESTDIR/etc/logrotate.d/ddos" > /dev/null 2>&1
-	chmod 0644 /etc/logrotate.d/ddos
+	chmod 0644 "$DESTDIR/etc/logrotate.d/ddos"
 	echo " (done)"
 fi
 
