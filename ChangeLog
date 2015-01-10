@@ -9,10 +9,14 @@ ddos (0.7) stable; urgency=low
   * Added init.d script.
   * Added systemd service support.
   * Added support for DESTDIR and a Makefile for easier packaging.
+  * Added command option to list whitelisted addresses.
   * Improved installer and uninstaller.
   * Installer does not overrides configuration files.
   * New configuration option FIREWALL (see man ddos).
   * New configuration option CONN_STATES (see man ddos).
+  * Check ip of local interfaces and whitelist them to prevent self bans.
+  * Improved netstat command to support ipv6 (experimental).
+  * Removed .cron extension of generated cron file because it seems to cause issues.
 
  -- Jefferson González <jgmdev@gmail.com>  Fri, 09 Jan 2015 17:27:01 +0200
 
