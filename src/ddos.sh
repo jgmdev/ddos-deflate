@@ -348,9 +348,9 @@ stop_daemon()
 	
 	kill $(daemon_pid)
 	
-	if [ -e /var/run/ddos.pid ]; then
-		rm -f /var/run/ddos.pid
-	fi
+	while [ -e /var/run/ddos.pid ]; do
+		continue
+	done
 	
 	log_msg "daemon stopped"
 }
