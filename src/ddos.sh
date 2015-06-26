@@ -76,7 +76,7 @@ log_msg()
 # ignore.host.list resolved to ip numbers
 ignore_list()
 {
-    for the_host in $(cat "${CONF_PATH}${IGNORE_HOST_LIST}" | grep -v "#"); do
+    for the_host in $(grep -v "#" "${CONF_PATH}${IGNORE_HOST_LIST}"); do
         host_ip=`nslookup $the_host | tail -n +3 | grep "Address" | awk '{print $2}'`
 
         # In case an ip is given instead of hostname
@@ -95,7 +95,7 @@ ignore_list()
         echo $iface_ip
     done
 
-    cat "${CONF_PATH}${IGNORE_IP_LIST}"
+    grep -v "#" "${CONF_PATH}${IGNORE_IP_LIST}"
 }
 
 # Generates a shell script that unbans a list of ip's after the
