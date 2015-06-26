@@ -70,7 +70,7 @@ if [ -d /etc/init.d ]; then
 	cp src/ddos.initd "$DESTDIR/etc/init.d/ddos" > /dev/null 2>&1
 	chmod 0755 "$DESTDIR/etc/init.d/ddos" > /dev/null 2>&1
 	echo " (done)"
-	
+
 	# Check if update-rc is installed and activate service
 	UPDATERC_PATH=`whereis update-rc.d`
 	if [ "$UPDATERC_PATH" != "update-rc.d:" ] && [ "$DESTDIR" = "" ]; then
@@ -92,7 +92,7 @@ elif [ -d /usr/lib/systemd/system ]; then
 	cp src/ddos.service "$DESTDIR/usr/lib/systemd/system/" > /dev/null 2>&1
 	chmod 0755 "$DESTDIR/usr/lib/systemd/system/ddos.service" > /dev/null 2>&1
 	echo " (done)"
-	
+
 	# Check if systemctl is installed and activate service
 	SYSTEMCTL_PATH=`whereis systemctl`
 	if [ "$SYSTEMCTL_PATH" != "systemctl:" ] && [ "$DESTDIR" = "" ]; then
