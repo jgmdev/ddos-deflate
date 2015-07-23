@@ -10,22 +10,21 @@
 ### END INIT INFO
 
 # Init script to control ddos daemon
-#
-# Jefferson Gonzalez <jgmdev@gmail.com>
+DDOS="/usr/local/ddos/ddos.sh"
 
 case "$1" in
         start)
-                ddos --start
+                $DDOS --start
         ;;
         stop)
-                ddos --stop
+                $DDOS --stop
                 ;;
         status)
-                ddos --status
+                $DDOS --status
                 ;;
         restart)
-                ddos --stop
-                ddos --start
+                $DDOS --stop
+                $DDOS --start
                 ;;
         *)
         echo "Usage: /etc/init.d/ddos {start|stop|restart|status}"
