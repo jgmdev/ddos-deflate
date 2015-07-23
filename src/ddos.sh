@@ -182,22 +182,8 @@ check_connections()
     # Original command to get ip's
     #netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr > $BAD_IP_LIST
 
-    # Improved command
-    netstat -ntu | \
-        # Strip netstat heading
-        tail -n +3 | \
-        # Match only the given connection states
-        grep -E "$CONN_STATES" | \
-        # Extract only the fifth column
-        awk '{print $5}' | \
-        # Strip port without affecting ipv6 addresses (experimental)
-        sed "s/:[0-9+]*$//g" | \
-        # Sort addresses for uniq to work correctly
-        sort | \
-        # Group same occurrences of ip and prepend amount of occurences found
-        uniq -c | \
-        # Numerical sort in reverse order
-        sort -nr | \
+    # recycling code
+    view_connections | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
         $BAD_IP_LIST
