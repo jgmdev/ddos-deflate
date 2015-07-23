@@ -1,9 +1,10 @@
 #!/bin/bash
 ##############################################################################
-# DDoS-Deflate version 0.7 Author: Zaf <zaf@vsnl.com>                        #
+# DDoS-Deflate version 0.7.1 Author: Zaf <zaf@vsnl.com>                      #
 ##############################################################################
 # Contributors:                                                              #
 # Jefferson González <jgmdev@gmail.com>                                      #
+# Massimiliano Cuttini					                                     #
 ##############################################################################
 # This program is distributed under the "Artistic License" Agreement         #
 #                                                                            #
@@ -28,7 +29,7 @@ load_conf()
 
 head()
 {
-    echo "DDoS-Deflate version 0.7"
+    echo "DDoS-Deflate version 0.7.1"
     echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
@@ -71,12 +72,30 @@ log_msg()
 
     echo "$(date +'[%Y-%m-%d %T]') $1" >> /var/log/ddos.log
 }
-
-# Gets a list of ip address to ignore with hostnames on the
-# ignore.host.list resolved to ip numbers
+# Create full list of IP to ignore
 ignore_list()
 {
-    for the_host in $(grep -v "#" "${CONF_PATH}${IGNORE_HOST_LIST}"); do
+    # Get ip's of ethernet interfaces to prevent blocking it self.
+    for iface_ip in $(ifconfig | grep "inet " | awk '{print $2}' | sed "s/addr://g"); do
+        echo $iface_ip
+    done
+
+	if [ "$IGNORE_KNOW_HOSTS" = "1" ]; then
+		get_know_hosts
+    fi
+
+	if [ "$USE_IGNORE_HOSTS_LIST" = "1" ]; then
+		get_ignore_hosts
+    fi
+
+	if [ "$USE_IGNORE_IPS_LIST" = "1" ]; then
+		get_ignore_ips
+    fi	
+}
+
+# Gets the list of hosts to ignore
+get_ignore_hosts() {
+	for the_host in $(grep -v "#" "${CONF_PATH}${IGNORE_HOST_LIST}"); do
         host_ip=`nslookup $the_host | tail -n +3 | grep "Address" | awk '{print $2}'`
 
         # In case an ip is given instead of hostname
@@ -89,13 +108,13 @@ ignore_list()
             done
         fi
     done
-
-    # Get ip's of ethernet interfaces to prevent blocking it self.
-    for iface_ip in $(ifconfig | grep "inet " | awk '{print $2}' | sed "s/addr://g"); do
-        echo $iface_ip
-    done
-
-    grep -v "#" "${CONF_PATH}${IGNORE_IP_LIST}"
+}
+get_ignore_ips() {
+	grep -v "#" "${CONF_PATH}${IGNORE_IP_LIST}"
+}
+# Gets the list of know hosts
+get_know_hosts() {
+	grep -v "#"  "${KNOW_HOST_FILE}" | awk '{print $1}'
 }
 
 # Generates a shell script that unbans a list of ip's after the
