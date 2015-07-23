@@ -193,6 +193,7 @@ check_service_connections()
 		echo "Checking IP with more than $NO_OF_CONNECTIONS_HTTP HTTP connections..."
 		view_http_connections | awk "{ if (\$1 >= $NO_OF_CONNECTIONS_HTTP) print; }" > $BAD_IP_LIST
 	else
+		SERVICE="all"
 		echo "Checking IP with more than $NO_OF_CONNECTIONS total connections..."
 		view_connections | awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > $BAD_IP_LIST
 	fi
@@ -210,7 +211,7 @@ check_service_connections()
     fi
 
     if [ $KILL -eq 1 ]; then
-        echo "List of connections that exceed max allowed"
+        echo "List of connections that exceed max allowed on $SERVICE services"
         echo "==========================================="
         cat $BAD_IP_LIST
     fi
@@ -253,7 +254,7 @@ check_service_connections()
     if [ $IP_BAN_NOW -eq 1 ]; then
         if [ $EMAIL_TO != "" ]; then
             dt=`date`
-            cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] IP addresses banned on $dt" $EMAIL_TO
+            cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] service $SERVICE - IPs banned on $dt" $EMAIL_TO
         fi
 
         unban_ip_list
