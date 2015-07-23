@@ -248,6 +248,9 @@ check_service_connections()
             $IPT -I INPUT -s $CURR_LINE_IP -j DROP
         fi
 
+		echo "Kill all TCP connections"
+		tcpkill $CURR_LINE_IP
+
         log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections for ban period $BAN_PERIOD"
     done < $BAD_IP_LIST
 
