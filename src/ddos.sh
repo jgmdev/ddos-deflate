@@ -1,10 +1,10 @@
 #!/bin/bash
 ##############################################################################
+# DDoS-Deflate version 0.8.0 Author: Massimiliano Cuttini                    #
 # DDoS-Deflate version 0.7.1 Author: Zaf <zaf@vsnl.com>                      #
 ##############################################################################
 # Contributors:                                                              #
 # Jefferson González <jgmdev@gmail.com>                                      #
-# Massimiliano Cuttini					                                     #
 ##############################################################################
 # This program is distributed under the "Artistic License" Agreement         #
 #                                                                            #
@@ -29,8 +29,8 @@ load_conf()
 
 head()
 {
-    echo "DDoS-Deflate version 0.7.1"
-    echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
+    echo "DDoS-Deflate version 0.8.0 Copyright (C) 2015, Massimiliano Cuttini"
+    echo "DDoS-Deflate version 0.7.1 Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
 
@@ -171,10 +171,16 @@ add_to_cron()
 }
 
 # Check active connections and ban if neccessary.
-check_connections()
+check_connections() {
+	check_service_connections "http"
+	check_service_connections
+}
+
+check_service_connections()
 {
     su_required
 
+	SERVICE=$1
     TMP_PREFIX='/tmp/ddos'
     TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
     BAD_IP_LIST=`$TMP_FILE`
@@ -182,11 +188,13 @@ check_connections()
     # Original command to get ip's
     #netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr > $BAD_IP_LIST
 
-    # recycling code
-    view_connections | \
-        # Only store connections that exceed max allowed
-        awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
-        $BAD_IP_LIST
+	if [ "$SERVICE" = "http" ]; then
+		echo "Checking IP with more than $NO_OF_CONNECTIONS_HTTP HTTP connections..."
+		view_http_connections | awk "{ if (\$1 >= $NO_OF_CONNECTIONS_HTTP) print; }" > $BAD_IP_LIST
+	else
+		echo "Checking IP with more than $NO_OF_CONNECTIONS total connections..."
+		view_connections | awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > $BAD_IP_LIST
+	fi
 
     FOUND=$(cat $BAD_IP_LIST)
 
@@ -206,7 +214,7 @@ check_connections()
         cat $BAD_IP_LIST
     fi
 
-    BANNED_IP_MAIL=`$TMP_FILE`
+	BANNED_IP_MAIL=`$TMP_FILE`
     BANNED_IP_LIST=`$TMP_FILE`
 
     echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
@@ -270,6 +278,30 @@ view_connections()
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column
         awk '{print $5}' | \
+        # Strip port without affecting ipv6 addresses (experimental)
+        sed "s/:[0-9+]*$//g" | \
+        # Sort addresses for uniq to work correctly
+        sort | \
+        # Group same occurrences of ip and prepend amount of occurences found
+        uniq -c | \
+        # Numerical sort in reverse order
+        sort -nr
+}
+
+# Active HTTP connections to server.
+view_http_connections()
+{
+    netstat -ntu | \
+        # Strip netstat heading
+        tail -n +3 | \
+        # Match only the given connection states
+        grep -E "$CONN_STATES" | \
+        # Extract both destination and source ip address
+        awk '{print $5" "$4}' | \
+		# Extract only HTTP and HTTPS ports
+		egrep ":($HTTP_PORTS)$"	| \
+		# Extract only source IP address
+		awk '{print $1}' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
         # Sort addresses for uniq to work correctly
@@ -462,7 +494,24 @@ while [ $1 ]; do
             exit
             ;;
         '--view' | '-v' )
-            view_connections
+			LIST_HTTP_CONNECTIONS=$(view_http_connections)
+			NUM_HTTP_CONNECTIONS=$(printf "$LIST_HTTP_CONNECTIONS" | wc -l)
+			echo "==================================="
+			echo "List of currently HTTP ($HTTP_PORTS) connections"
+			echo "Number of connections: $NUM_HTTP_CONNECTIONS"			
+			echo "==================================="			
+			printf "$LIST_HTTP_CONNECTIONS"
+			echo
+
+			LIST_ALL_CONNECTIONS=$(view_connections)
+			NUM_ALL_CONNECTIONS=$(printf "$LIST_ALL_CONNECTIONS" | wc -l)
+			echo "==================================="
+			echo "List of all curreclty active connections"
+			echo "Number of connections: $NUM_ALL_CONNECTIONS"	
+			echo "==================================="
+			printf "$LIST_ALL_CONNECTIONS"
+			echo
+
             exit
             ;;
         '--kill' | '-k' )

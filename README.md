@@ -25,9 +25,13 @@ you use APF on your server in general, but deflate will work without it.)
 
 ### Notable Features
 
+v 0.8.0
+* It is possible to have different maximum connection for HTTP(s) services
+* It is possible to whitelist /etc/hosts ips
+
+v 0.7.1
 * It is possible to whitelist IP addresses, via /etc/ddos/ignore.ip.list.
 * It is possible to whitelist hostnames, via /etc/ddos/ignore.host.list.
-* It is possible to whitelist /etc/hosts ips
 * Simple configuration file: /etc/ddos/ddos.conf
 * IP addresses are automatically unblocked after a preconfigured time limit (default: 600 seconds)
 * The script can run as a cron job at chosen frequency via the configuration file (default: 1 minute)
