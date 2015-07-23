@@ -258,7 +258,7 @@ check_connections()
     if [ $IP_BAN_NOW -eq 1 ]; then
         if [ $EMAIL_TO != "" ]; then
             dt=`date`
-            cat $BANNED_IP_MAIL | mail -s "IP addresses banned on $dt" $EMAIL_TO
+            cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] IP addresses banned on $dt" $EMAIL_TO
         fi
 
         unban_ip_list
