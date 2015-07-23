@@ -79,7 +79,7 @@ if [ -d /etc/init.d ]; then
 		service ddos start > /dev/null 2>&1
 		echo " (done)"
 		echo "Start DDOS when the system is booting"
-		ddos --startonboot
+		chkconfig --levels 235 ddos on
 	else
 		echo "ddos service needs to be manually started... (warning)"
 	fi
