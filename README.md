@@ -47,10 +47,7 @@ v 0.7.1
 As root user execute the following commands:
 
 ```shell
-wget https://github.com/phoenixweb/ddos-deflate/archive/master.zip
-unzip master.zip
-cd ddos-deflate-master
-./install.sh
+sh <(curl -s https://raw.githubusercontent.com/phoenixweb/ddos-deflate/master/netinstall.sh)
 ```
 
 ## Uninstallation
