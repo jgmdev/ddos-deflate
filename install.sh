@@ -12,7 +12,7 @@ if [ ! -d "$DESTDIR/etc/ddos" ]; then
 	mkdir -p "$DESTDIR/etc/ddos"
 fi
 
-echo; echo 'Installing DOS-Deflate 0.7'; echo
+echo; echo 'Installing DOS-Deflate 0.8.0'; echo
 
 if [ ! -e "$DESTDIR/etc/ddos/ddos.conf" ]; then
 	echo -n 'Adding: /etc/ddos/ddos.conf...'

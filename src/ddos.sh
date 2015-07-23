@@ -498,7 +498,7 @@ while [ $1 ]; do
 			NUM_HTTP_CONNECTIONS=$(printf "$LIST_HTTP_CONNECTIONS" | wc -l)
 			echo "==================================="
 			echo "List of currently HTTP ($HTTP_PORTS) connections"
-			echo "Number of connections: $NUM_HTTP_CONNECTIONS"			
+			echo "Number of clients connected: $NUM_HTTP_CONNECTIONS"			
 			echo "==================================="			
 			printf "$LIST_HTTP_CONNECTIONS"
 			echo
@@ -506,8 +506,8 @@ while [ $1 ]; do
 			LIST_ALL_CONNECTIONS=$(view_connections)
 			NUM_ALL_CONNECTIONS=$(printf "$LIST_ALL_CONNECTIONS" | wc -l)
 			echo "==================================="
-			echo "List of all curreclty active connections"
-			echo "Number of connections: $NUM_ALL_CONNECTIONS"	
+			echo "List of all currently active connections"
+			echo "Number of clients connected: $NUM_ALL_CONNECTIONS"	
 			echo "==================================="
 			printf "$LIST_ALL_CONNECTIONS"
 			echo
