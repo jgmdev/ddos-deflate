@@ -1,10 +1,12 @@
 # DDoS Deflate
+Fork of DDoS Deflate https://github.com/jgmdev/ddos-deflate
+with fixes, improvements and amazing features.
 Fork of DDoS Deflate http://deflate.medialayer.com/ with 
 fixes, improvements and new features.
 
 **Original Author:** Zaf <zaf@vsnl.com> (Copyright (C) 2005)
-
-**Maintainer:** Jefferson González <jgmdev@gmail.com>
+**Original Fork from:** Jefferson González <jgmdev@gmail.com>
+**Maintainer:** Massimiliano Cuttini
 
 ## About
 
@@ -25,6 +27,7 @@ you use APF on your server in general, but deflate will work without it.)
 
 * It is possible to whitelist IP addresses, via /etc/ddos/ignore.ip.list.
 * It is possible to whitelist hostnames, via /etc/ddos/ignore.host.list.
+* It is possible to whitelist /etc/hosts ips
 * Simple configuration file: /etc/ddos/ddos.conf
 * IP addresses are automatically unblocked after a preconfigured time limit (default: 600 seconds)
 * The script can run as a cron job at chosen frequency via the configuration file (default: 1 minute)
@@ -40,7 +43,7 @@ you use APF on your server in general, but deflate will work without it.)
 As root user execute the following commands:
 
 ```shell
-wget https://github.com/jgmdev/ddos-deflate/archive/master.zip
+wget https://github.com/phoenixweb/ddos-deflate/archive/master.zip
 unzip master.zip
 cd ddos-deflate-master
 ./install.sh
