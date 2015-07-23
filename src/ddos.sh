@@ -49,6 +49,7 @@ showhelp()
     echo '-t | --status: Show status of daemon and pid if currently running'
     echo '-v | --view: Display active connections to the server'
     echo '-k | --kill: Block all ip addresses making more than N connections'
+	echo '--startonboot [on|off]: Insert DDOS in the chkconfig to start when system boot'
 }
 
 # Check if super user is executing the
@@ -312,6 +313,19 @@ view_http_connections()
         sort -nr
 }
 
+#Start UP
+start_on_boot() {
+	SELECT=$1
+	if [ "$SELECT" = "off" ]; then
+		echo "On system start level 235 DDOS is OFF"
+		chkconfig --levels 235 ddos off
+	else
+		echo "On system start level 235 DDOS is ON"
+		chkconfig --levels 235 ddos on
+	fi
+}
+
+
 # Executed as a cleanup function when the daemon is stopped
 on_daemon_exit()
 {
@@ -512,6 +526,10 @@ while [ $1 ]; do
 			printf "$LIST_ALL_CONNECTIONS"
 			echo
 
+            exit
+            ;;
+		'--startonboot')
+            start_on_boot $2
             exit
             ;;
         '--kill' | '-k' )

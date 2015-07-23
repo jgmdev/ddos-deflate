@@ -78,6 +78,8 @@ if [ -d /etc/init.d ]; then
 		update-rc.d ddos defaults > /dev/null 2>&1
 		service ddos start > /dev/null 2>&1
 		echo " (done)"
+		echo "Start DDOS when the system is booting"
+		ddos --startonboot
 	else
 		echo "ddos service needs to be manually started... (warning)"
 	fi
