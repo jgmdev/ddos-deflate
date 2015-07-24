@@ -12,11 +12,13 @@ echo; echo 'Installing DOS-Deflate 0.8.0'; echo
 echo "Resolving dependencies";
 echo "Check if epel in installed";
 EPEL_ENABLED=$(yum repolist | grep "epel")
-if [ "$EPEL_ENABLED" != "" ]; then
-	echo "We need epel in order to install tcpkill"
+if [ "$EPEL_ENABLED" = "" ]; then
+	echo "Epel is not installed or enabled";
 	yum -y install epel-release
 	echo "Set epel to disable in order to do not mess with enabled repository"
 	sed -i.bak "s/enabled\=1/enabled\=0/g" "/etc/yum.repos.d/epel.repo"
+else 
+	echo "Epel is already installed!"
 fi
 yum -y install dsniff --enablerepo=epel
 
