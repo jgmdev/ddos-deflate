@@ -26,8 +26,12 @@ you use APF on your server in general, but deflate will work without it.)
 ### Notable Features
 
 v 0.8.0
+* kill all established connections
+* avoid multiple ban of IP due to the established connections
 * It is possible to have different maximum connection for HTTP(s) services
 * It is possible to whitelist /etc/hosts ips
+* Net installer
+* Net upgrader
 
 v 0.7.1
 * It is possible to whitelist IP addresses, via /etc/ddos/ignore.ip.list.

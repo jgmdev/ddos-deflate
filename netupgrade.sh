@@ -1,4 +1,5 @@
 #!/bin/bash
+service ddos stop
 cd ~/ddos-deflate-master/
 sh uninstall.sh
 cd ~
