@@ -159,7 +159,7 @@ ban_ip_now() {
 }
 
 list_banned_ip() {
-	cat BANNED_DB
+	cat $BANNED_DB
 }
 
 unban_ip_now() {
@@ -192,11 +192,17 @@ kill_connections() {
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
 free_banned() {
+	FOUND=$(cat $BANNED_DB)
+    if [ "$FOUND" = "" ]; then
+		echo "There are no banned IP to free";
+        return 0
+    fi
+
 	while read line; do
 		IP_TO_CHECK=$(awk '{print $1}' $line);
 		START_TIME=$(awk '{print $2}' $line)
-		END_TIME=$(awk '{print $2}' $line)
-		END_TIME_HUMAN=$(date -d @$END_TIME)
+		END_TIME=$(awk '{print $3}' $line)
+		END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME_HUMAN;
 		NOW=timestamp
 
 		if ( $NOW > $END_TIME ); then
@@ -205,7 +211,7 @@ free_banned() {
 		else
 			echo "IP $IP_TO_CHECK remain blocked till $END_TIME_HUMAN"
 		fi
-	done < $BANNED_DB
+	done < $FOUND
 }
 unban_ip_list()
 {
