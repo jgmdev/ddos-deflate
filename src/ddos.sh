@@ -134,13 +134,13 @@ ban_ip_now() {
 
 	if [$3 = "" ]; then
 		SERVICE="manual";
-	elif
+	else
 		SERVICE=$3;
 	fi
 
 	if [$4 = "" ]; then
 		NUM_OF_CONNECTIONS="-";
-	elif
+	else
 		NUM_OF_CONNECTIONS=$4;
 	fi
 
