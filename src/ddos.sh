@@ -198,9 +198,9 @@ kill_connections() {
 	tcpkill host $IP_TO_KILL >> $LOG_FILE 2>&1 &
 	sleep 10
 	for child in $(jobs -p); do
-		kill "$child" > /dev/null 2>&1 &
+		kill "$child" >> $LOG_FILE 2>&1
 	done
-	wait $(jobs -p)
+	wait $(jobs -p) >> $LOG_FILE 2>&1
 }
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
