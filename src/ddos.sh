@@ -170,6 +170,8 @@ ban_ip_now() {
 	MSG_TO_LOG="banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
 	log_msg $MSG_TO_LOG
 
+	unban_ip_list
+
 	if [ $EMAIL_TO != "" ]; then
 		dt=`date`
 		BANNED_IP_MAIL=`mktemp ddos.mail.file.XXXX`
@@ -203,8 +205,6 @@ unban_ip_now() {
 	sed -i.bak "/^$IP_TO_UNBAN/d" $BANNED_DB
 
 	log_msg "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN"
-
-	unban_ip_list
 }
 kill_connections() {
 	IP_TO_KILL=$1;
