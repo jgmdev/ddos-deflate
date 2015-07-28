@@ -6,7 +6,7 @@ else
 fi
 
 service ddos stop
-if [ -d ~/ddos-deflate-master/]; then if
+if [ -d ~/ddos-deflate-master/]; then
 	mv ~/ddos-deflate-master ~/ddos-deflate
 fi
 cd ~/ddos-deflate/
