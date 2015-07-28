@@ -322,7 +322,9 @@ check_service_connections()
 
         IGNORE_BAN=`ignore_list | grep -c $CURR_LINE_IP`
 
-        [ $IGNORE_BAN -ge 1 ];  || continue
+        if [ $IGNORE_BAN -ge 1 ]; then
+            continue
+        fi
 
         IP_BAN_NOW=1
         ban_ip_now $CURR_LINE_IP $BAN_PERIOD $SERVICE $CURR_LINE_CONN
