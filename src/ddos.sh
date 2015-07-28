@@ -194,6 +194,7 @@ kill_connections() {
 free_banned() {
     if [ -f "$BANNED_DB" ] && [ ! "$BANNED_DB" == "" ]; then
         while read line; do
+			[ -z "$line" ] && continue
 			IP_TO_CHECK=$(awk '{print $1}' $line);
 			START_TIME=$(awk '{print $2}' $line)
 			END_TIME=$(awk '{print $3}' $line)
@@ -561,11 +562,13 @@ while [ $1 ]; do
             exit
             ;;
         '--free-banned' | '-f' )
+			echo "Checking if there are IPs to unban..."
             free_banned
+			echo "Done!"
             exit
             ;;
         '--ignore-list' | '-i' )
-            echo "List of currently whitelisted ip's."
+            echo "List of currently whitelisted IPs"
             echo "==================================="
             ignore_list
             exit
