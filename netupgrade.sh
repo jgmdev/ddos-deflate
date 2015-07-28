@@ -1,14 +1,14 @@
 #!/bin/bash
-if [ ! $1 ]; then {
+if [ -z "$1" ]; then
 	BRANCH="master"
-} else {
+else
 	BRANCH=$1
-}
+fi
 
 service ddos stop
-if [ -d ~/ddos-deflate-master/]; then {
+if [ -d ~/ddos-deflate-master/]; then if
 	mv ~/ddos-deflate-master ~/ddos-deflate
-}
+fi
 cd ~/ddos-deflate/
 sh uninstall.sh
 cd ~

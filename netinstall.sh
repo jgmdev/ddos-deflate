@@ -1,10 +1,9 @@
 #!/bin/bash
-if [ ! $1 ]; then {
+if [ -z "$1" ]; then
 	BRANCH="master"
-} else {
+else
 	BRANCH=$1
-}
-
+fi
 cd ~
 wget "https://github.com/phoenixweb/ddos-deflate/archive/$BRANCH.zip" -O ~/ddos-deflate-latest.zip
 unzip ~/ddos-deflate-latest.zip -d ~
