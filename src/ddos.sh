@@ -199,8 +199,8 @@ free_banned() {
 		END_TIME_HUMAN=$(date -d @$END_TIME)
 		NOW=timestamp
 
-		if ( $NOW > $END_TIME );
-			echo "Block on $IP_TO_CHECK expired"
+		if ( $NOW > $END_TIME ); then
+			echo "Block on $IP_TO_CHECK expired";
 			unban_ip_now $line
 		else
 			echo "IP $IP_TO_CHECK remain blocked till $END_TIME_HUMAN"
