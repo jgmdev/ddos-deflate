@@ -166,6 +166,8 @@ ban_ip_now() {
 
 	echo "Adding banned IP to database";
 	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS" >> $BANNED_DB
+
+	log_msg "banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
 }
 
 list_banned_ip() {
@@ -185,11 +187,10 @@ unban_ip_now() {
 		$IPT -D INPUT -s $IP_TO_UNBAN -j REJECT
 	fi
 
-	echo "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN" >> $LOG_FILE
-
 	echo "Removing banned IP $IP_TO_UNBAN from database";
 	sed -i.bak "/^$IP_TO_UNBAN/d" $BANNED_DB
-	cat $BANNED_DB
+
+	log_msg "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN"
 }
 kill_connections() {
 	IP_TO_KILL=$1;
@@ -215,7 +216,7 @@ free_banned() {
 			END_TIME_HUMAN=$(timetodate $END_TIME);
 			NOW=$(timestamp)
 			TIME_LEFT=$(($END_TIME - $NOW))
-			echo "IP $IP_TO_CHECK will be free at $END_TIME ($END_TIME_HUMAN) $TIME_LEFT seconds left";
+			#echo "IP $IP_TO_CHECK will be free at $END_TIME ($END_TIME_HUMAN) $TIME_LEFT seconds left";
 
 			if (( "$TIME_LEFT" <= 0 )); then
 				echo "Block on $IP_TO_CHECK is expired";
@@ -320,11 +321,12 @@ check_service_connections()
 
         IP_BAN_NOW=1
 
-		ban_ip_now $CURR_LINE_IP $BAN_PERIOD $SERVICE $CURR_LINE_CONN
+		
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
         echo $CURR_LINE_IP >> $BANNED_IP_LIST
 
-        log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections on service $SERVICE for ban period of $BAN_PERIOD seconds"
+        ban_ip_now $CURR_LINE_IP $BAN_PERIOD $SERVICE $CURR_LINE_CONN
+
     done < $BAD_IP_LIST
 
     if [ $IP_BAN_NOW -eq 1 ]; then
