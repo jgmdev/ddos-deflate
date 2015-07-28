@@ -14,6 +14,7 @@
 
 CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
+BANNED_DB="/var/lib/ddos/banned.ip.db"
 
 load_conf()
 {
@@ -128,6 +129,20 @@ get_know_hosts() {
 ban_ip_now() {
 	IP_TO_BAN=$1;
 	TIME_TO_BAN=$2;
+	START_TIME=timestamp;
+	END_TIME=$(timestamp + $TIME_TO_BAN);
+
+	if [$3 = "" ]; then
+		SERVICE="manual";
+	elif
+		SERVICE=$3;
+	fi
+
+	if [$4 = "" ]; then
+		NUM_OF_CONNECTIONS="-";
+	elif
+		NUM_OF_CONNECTIONS=$4;
+	fi
 
 	if [ "$FIREWALL" = "apf" ]; then
 		$APF -d $IP_TO_BAN
@@ -138,7 +153,15 @@ ban_ip_now() {
 	fi
 
 	kill_connections $IP_TO_BAN
+
+	echo "Adding banned IP to database";
+	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS" >> $BANNED_DB
 }
+
+listed_banned_ip() {
+	cat BANNED_DB
+}
+
 unban_ip_now() {
 	IP_TO_UNBAN=$1;
 
@@ -151,6 +174,9 @@ unban_ip_now() {
 	fi
 
 	echo "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN" >> /var/log/ddos.log
+
+	echo "Removing banned IP $IP_TO_UNBAN from database";
+	sed -i.bak '/^$IP_TO_UNBAN/d' $BANNED_DB
 }
 kill_connections() {
 	IP_TO_KILL=$1;
@@ -165,6 +191,21 @@ kill_connections() {
 }
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
+free_banned() {
+	while read line; do
+		IP_TO_CHECK=$(awk '{print $1}' $line);
+		START_TIME=$(awk '{print $2}' $line)
+		END_TIME=$(awk '{print $2}' $line)
+		END_TIME_HUMAN=$(date -d @$END_TIME)
+
+		if [ timestamp > END_TIME ];
+			echo "Block on $IP_TO_CHECK expired"
+			unban_ip_now $line
+		else
+			echo "IP $IP_TO_CHECK remain blocked till $END_TIME_HUMAN"
+		fi
+	done < $BANNED_DB
+}
 unban_ip_list()
 {
     UNBAN_SCRIPT=`mktemp /tmp/unban.sh.XXXXXXXX`
@@ -539,6 +580,10 @@ while [ $1 ]; do
             ;;
         '--cron' | '-c' )
             add_to_cron
+            exit
+            ;;
+        '--free-banned' | '-f' )
+            free_banned
             exit
             ;;
         '--ignore-list' | '-i' )

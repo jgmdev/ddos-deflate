@@ -23,7 +23,13 @@ fi
 yum -y install dsniff --enablerepo=epel
 
 if [ ! -d "$DESTDIR/etc/ddos" ]; then
+	echo "Adding $DESTDIR/etc/ddos directory"	
 	mkdir -p "$DESTDIR/etc/ddos"
+fi
+
+if [ ! -d "/var/lib/ddos/" ]; then
+	echo "Adding /var/lib/ddos directory"
+	mkdir -p "/var/lib/ddos/"
 fi
 
 echo; echo 'Installing DOS-Deflate 0.8.0'; echo
