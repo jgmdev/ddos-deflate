@@ -85,11 +85,11 @@ ignore_list()
 		get_know_hosts
     fi
 
-	if [ "$USE_IGNORE_HOSTS_LIST" = "1" ]; then
+	if [ "$USE_IGNORE_HOST_LIST" = "1" ]; then
 		get_ignore_hosts
     fi
 
-	if [ "$USE_IGNORE_IPS_LIST" = "1" ]; then
+	if [ "$USE_IGNORE_IP_LIST" = "1" ]; then
 		get_ignore_ips
     fi	
 }
