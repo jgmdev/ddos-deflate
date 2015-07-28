@@ -128,9 +128,12 @@ get_know_hosts() {
 
 ban_ip_now() {
 	IP_TO_BAN=$1;
-	TIME_TO_BAN=$2;
-	START_TIME=$(timestamp);
-	END_TIME=$(($START_TIME + $TIME_TO_BAN));
+
+	if [ -z $2 ]; then
+		TIME_TO_BAN=$BAN_PERIOD;
+	else
+		TIME_TO_BAN=$2;
+	fi
 
 	if [ -z $3 ]; then
 		SERVICE="manual";
@@ -143,6 +146,9 @@ ban_ip_now() {
 	else
 		NUM_OF_CONNECTIONS=$4;
 	fi
+
+	START_TIME=$(timestamp);
+	END_TIME=$(($START_TIME + $TIME_TO_BAN));
 
 	if [ "$FIREWALL" = "apf" ]; then
 		$APF -d $IP_TO_BAN
