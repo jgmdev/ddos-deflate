@@ -195,7 +195,7 @@ kill_connections() {
 	IP_TO_KILL=$1;
 
 	echo "Kill all TCP connections with host $IP_TO_KILL"
-	tcpkill host $IP_TO_KILL >> LOG_FILE 2>&1 &
+	tcpkill host $IP_TO_KILL >> $LOG_FILE 2>&1 &
 	sleep 10
 	for child in $(jobs -p); do
 		kill "$child"
@@ -579,6 +579,7 @@ while [ $1 ]; do
 			echo "List of currently banned IPs"
             echo "==================================="
 			list_banned_ip
+			echo "==================================="
 			echo "Checking if there are IPs to unban..."
             free_banned
 			echo "Done!"
