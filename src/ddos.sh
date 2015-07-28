@@ -202,9 +202,9 @@ free_banned() {
         while read line; do
 			[ -z "$line" ] && continue
 			echo "$line";
-			IP_TO_CHECK=`awk '{print $1}' $line`
-			START_TIME=`awk '{print $2}' $line`
-			END_TIME=`awk '{print $3}' $line`
+			IP_TO_CHECK=$(echo $line | awk '{print $1}')
+			START_TIME=$(echo $line | awk '{print $2}')
+			END_TIME=$(echo $line | awk '{print $3}')
 			END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME);
 			NOW=timestamp
 			TIME_LEFT=($END_TIME - $NOW)
