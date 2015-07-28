@@ -167,7 +167,19 @@ ban_ip_now() {
 	echo "Adding banned IP to database";
 	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS" >> $BANNED_DB
 
-	log_msg "banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
+	MSG_TO_LOG="banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
+	log_msg $MSG_TO_LOG
+
+	if [ $EMAIL_TO != "" ]; then
+		dt=`date`
+		BANNED_IP_MAIL=`$TMP_FILE`
+		echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
+		echo $MSG_TO_LOG >> $BANNED_IP_MAIL
+		echo >> $BANNED_IP_MAIL
+		echo "DDOS 8.0 - rewritten by PhoenixWeb" >> $BANNED_IP_MAIL
+		cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] $SERVICE - IP $IP_TO_BAN banned on $dt" $EMAIL_TO
+		rm -rf $BANNED_IP_MAIL
+	fi
 }
 
 list_banned_ip() {
@@ -191,6 +203,8 @@ unban_ip_now() {
 	sed -i.bak "/^$IP_TO_UNBAN/d" $BANNED_DB
 
 	log_msg "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN"
+
+	unban_ip_list
 }
 kill_connections() {
 	IP_TO_KILL=$1;
@@ -216,13 +230,12 @@ free_banned() {
 			END_TIME_HUMAN=$(timetodate $END_TIME);
 			NOW=$(timestamp)
 			TIME_LEFT=$(($END_TIME - $NOW))
-			#echo "IP $IP_TO_CHECK will be free at $END_TIME ($END_TIME_HUMAN) $TIME_LEFT seconds left";
 
 			if (( "$TIME_LEFT" <= 0 )); then
 				echo "Block on $IP_TO_CHECK is expired";
 				unban_ip_now $line
 			else
-				echo "IP $IP_TO_CHECK will remain blocked till $END_TIME_HUMAN"
+				echo "IP $IP_TO_CHECK will remain blocked till $END_TIME_HUMAN ($TIME_LEFT seconds left)"
 			fi
 		done < $BANNED_DB
     fi
@@ -301,12 +314,6 @@ check_service_connections()
         cat $BAD_IP_LIST
     fi
 
-	BANNED_IP_MAIL=`$TMP_FILE`
-    BANNED_IP_LIST=`$TMP_FILE`
-
-    echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
-    echo >> $BANNED_IP_MAIL
-
     IP_BAN_NOW=0
 
     while read line; do
@@ -315,34 +322,18 @@ check_service_connections()
 
         IGNORE_BAN=`ignore_list | grep -c $CURR_LINE_IP`
 
-        if [ $IGNORE_BAN -ge 1 ]; then
-            continue
-        fi
+        [ $IGNORE_BAN -ge 1 ];  || continue
 
         IP_BAN_NOW=1
-
-		
-        echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
-        echo $CURR_LINE_IP >> $BANNED_IP_LIST
-
         ban_ip_now $CURR_LINE_IP $BAN_PERIOD $SERVICE $CURR_LINE_CONN
 
     done < $BAD_IP_LIST
 
     if [ $IP_BAN_NOW -eq 1 ]; then
-        if [ $EMAIL_TO != "" ]; then
-            dt=`date`
-            cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] service $SERVICE - IPs banned on $dt" $EMAIL_TO
-        fi
-
-        unban_ip_list
-
-        if [ $KILL -eq 1 ]; then
-            echo "==========================================="
-            echo "Banned IP addresses:"
-            echo "==========================================="
-            list_banned_ip
-        fi
+		echo "==========================================="
+		echo "Banned IP addresses:"
+		echo "==========================================="
+		list_banned_ip
     fi
 
     rm -f $TMP_PREFIX.*
