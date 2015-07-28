@@ -198,7 +198,7 @@ kill_connections() {
 	tcpkill host $IP_TO_KILL >> $LOG_FILE 2>&1 &
 	sleep 10
 	for child in $(jobs -p); do
-		kill "$child"
+		kill "$child" > /dev/null 2>&1 &
 	done
 	wait $(jobs -p)
 }
@@ -320,11 +320,9 @@ check_service_connections()
 
         IP_BAN_NOW=1
 
-		ban_ip_now CURR_LINE_CONN
+		ban_ip_now $CURR_LINE_IP $BAN_PERIOD $SERVICE $CURR_LINE_CONN
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
         echo $CURR_LINE_IP >> $BANNED_IP_LIST
-
-		ban_ip_now $CURR_LINE_IP $BAN_PERIOD
 
         log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections on service $SERVICE for ban period of $BAN_PERIOD seconds"
     done < $BAD_IP_LIST
