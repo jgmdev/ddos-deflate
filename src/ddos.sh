@@ -245,7 +245,7 @@ unban_ip_list()
     UNBAN_SCRIPT=`mktemp /tmp/unban.sh.XXXXXXXX`
     echo '#!/bin/sh' > $UNBAN_SCRIPT
     echo "sleep $BAN_PERIOD" >> $UNBAN_SCRIPT
-    echo "$SBINDIR/ddos -f" >> $UNBAN_SCRIPT
+    echo "$SBINDIR/ddos -f > /dev/null 2>&1" >> $UNBAN_SCRIPT
     echo "rm -f $UNBAN_SCRIPT" >> $UNBAN_SCRIPT
     . $UNBAN_SCRIPT &
 }
