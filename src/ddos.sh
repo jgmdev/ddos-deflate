@@ -172,13 +172,13 @@ ban_ip_now() {
 
 	if [ $EMAIL_TO != "" ]; then
 		dt=`date`
-		BANNED_IP_MAIL=`$TMP_FILE`
-		echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
-		echo $MSG_TO_LOG >> $BANNED_IP_MAIL
-		echo >> $BANNED_IP_MAIL
-		echo "DDOS 8.0 - rewritten by PhoenixWeb" >> $BANNED_IP_MAIL
-		cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] $SERVICE - IP $IP_TO_BAN banned on $dt" $EMAIL_TO
-		rm -rf $BANNED_IP_MAIL
+		BANNED_IP_MAIL=`mktemp ddos.mail.file.XXXX`
+		echo "Banned the following ip addresses on `date`:" > "$BANNED_IP_MAIL"
+		echo $MSG_TO_LOG >> "$BANNED_IP_MAIL"
+		echo >> "$BANNED_IP_MAIL"
+		echo "DDOS 8.0 - rewritten by PhoenixWeb" >> "$BANNED_IP_MAIL"
+		cat "$BANNED_IP_MAIL" | mail -s "[$HOSTNAME] $SERVICE - IP $IP_TO_BAN banned on $dt" $EMAIL_TO
+		rm -rf "$BANNED_IP_MAIL"
 	fi
 }
 
