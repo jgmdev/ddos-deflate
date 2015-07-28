@@ -195,7 +195,7 @@ kill_connections() {
 	IP_TO_KILL=$1;
 
 	echo "Kill all TCP connections with host $IP_TO_KILL"
-	tcpkill host $IP_TO_KILL >> 2>>LOG_FILE 1>>LOG_FILE &
+	tcpkill host $IP_TO_KILL >> LOG_FILE 2>&1 &
 	sleep 10
 	for child in $(jobs -p); do
 		kill "$child"
@@ -326,7 +326,7 @@ check_service_connections()
 
 		ban_ip_now $CURR_LINE_IP $BAN_PERIOD
 
-        log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections on service $SERVICE for ban period $BAN_PERIOD"
+        log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections on service $SERVICE for ban period of $BAN_PERIOD seconds"
     done < $BAD_IP_LIST
 
     if [ $IP_BAN_NOW -eq 1 ]; then
@@ -341,7 +341,7 @@ check_service_connections()
             echo "==========================================="
             echo "Banned IP addresses:"
             echo "==========================================="
-            cat $BANNED_IP_LIST
+            list_banned_ip
         fi
     fi
 
@@ -576,7 +576,7 @@ while [ $1 ]; do
             exit
             ;;
         '--free-banned' | '-f' )
-			echo "List of currently whitelisted IPs"
+			echo "List of currently banned IPs"
             echo "==================================="
 			list_banned_ip
 			echo "Checking if there are IPs to unban..."
