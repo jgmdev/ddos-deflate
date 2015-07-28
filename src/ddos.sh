@@ -202,7 +202,7 @@ free_banned() {
 		IP_TO_CHECK=$(awk '{print $1}' $line);
 		START_TIME=$(awk '{print $2}' $line)
 		END_TIME=$(awk '{print $3}' $line)
-		END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME_HUMAN;
+		END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME_HUMAN);
 		NOW=timestamp
 
 		if ( $NOW > $END_TIME ); then
