@@ -130,7 +130,7 @@ ban_ip_now() {
 	IP_TO_BAN=$1;
 	TIME_TO_BAN=$2;
 	START_TIME=$(timestamp);
-	END_TIME=$((timestamp + $TIME_TO_BAN));
+	END_TIME=$(($START_TIME + $TIME_TO_BAN));
 
 	if [ -z $3 ]; then
 		SERVICE="manual";
