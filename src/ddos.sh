@@ -79,10 +79,10 @@ log_msg()
 
 # Define a timestamp function
 timestamp() {
-  date +"%s"
+	date +"%s"
 }
 timetodate() {
-	echo "date -d @$1"
+	date -d @$1
 }
 # Create full list of IP to ignore
 ignore_list()
