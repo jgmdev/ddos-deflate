@@ -81,6 +81,9 @@ log_msg()
 timestamp() {
   date +"%s"
 }
+timetodate() {
+	echo "date -d @$1"
+}
 # Create full list of IP to ignore
 ignore_list()
 {
@@ -205,8 +208,8 @@ free_banned() {
 			IP_TO_CHECK=$(echo $line | awk '{print $1}')
 			START_TIME=$(echo $line | awk '{print $2}')
 			END_TIME=$(echo $line | awk '{print $3}')
-			END_TIME_HUMAN=$(echo $END_TIME | awk 'strftime("%c", $0)');
-			NOW=timestamp
+			END_TIME_HUMAN=$(timetodate $END_TIME);
+			NOW=$(timestamp)
 			TIME_LEFT=($END_TIME - $NOW)
 			echo "IP $IP_TO_CHECK was banned on $START_TIME and will be free at $END_TIME \($END_TIME_HUMAN\), $TIME_LEFT seconds left";
 
