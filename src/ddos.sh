@@ -75,6 +75,11 @@ log_msg()
 
     echo "$(date +'[%Y-%m-%d %T]') $1" >> /var/log/ddos.log
 }
+
+# Define a timestamp function
+timestamp() {
+  date +"%T"
+}
 # Create full list of IP to ignore
 ignore_list()
 {
@@ -120,7 +125,20 @@ get_know_hosts() {
 	grep -v "#"  "${KNOW_HOST_FILE}" | awk '{print $1}'
 }
 
+ban_ip_now() {
+	IP_TO_BAN=$1;
+	TIME_TO_BAN=$2;
 
+	if [ "$FIREWALL" = "apf" ]; then
+		$APF -d $IP_TO_BAN
+	elif [ "$FIREWALL" = "csf" ]; then
+		$CSF -d $IP_TO_BAN
+	elif [ "$FIREWALL" = "iptables" ]; then
+		$IPT -I INPUT -s $IP_TO_BAN -j REJECT
+	fi
+
+	kill_connections $IP_TO_BAN
+}
 unban_ip_now() {
 	IP_TO_UNBAN=$1;
 
@@ -134,12 +152,23 @@ unban_ip_now() {
 
 	echo "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN" >> /var/log/ddos.log
 }
+kill_connections() {
+	IP_TO_KILL=$1;
+
+	echo "Kill all TCP connections with host $IP_TO_KILL"
+	tcpkill host $IP_TO_KILL &
+	sleep 10
+	for child in $(jobs -p); do
+		kill "$child"
+	done
+	wait $(jobs -p)
+}
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
 unban_ip_list()
 {
     UNBAN_SCRIPT=`mktemp /tmp/unban.sh.XXXXXXXX`
-    TMP_FILE=`mktemp /tmp/unban.tmp.XXXXXXXX`
+#    TMP_FILE=`mktemp /tmp/unban.tmp.XXXXXXXX`
     UNBAN_IP_LIST=`mktemp /tmp/unban.ip.XXXXXXXX`
 
     echo '#!/bin/sh' > $UNBAN_SCRIPT
@@ -158,7 +187,7 @@ unban_ip_list()
 
 #		echo "echo \"\$(date +'[%Y-%m-%d %T]') unbanned $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
 
-		echo "ddos -u $line" >> $UNBAN_SCRIPT
+		echo "$SBINDIR/ddos -u $line" >> $UNBAN_SCRIPT
 		echo $line >> $UNBAN_IP_LIST
 
 	done < $BANNED_IP_LIST
@@ -171,7 +200,6 @@ unban_ip_list()
 
     # Launch script in charge of unbanning after the given period of time
     . $UNBAN_SCRIPT &
-
 }
 
 add_to_cron()
@@ -258,22 +286,13 @@ check_service_connections()
 
         IP_BAN_NOW=1
 
+		ban_ip_now CURR_LINE_CONN
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
         echo $CURR_LINE_IP >> $BANNED_IP_LIST
-        echo $CURR_LINE_IP >> "${CONF_PATH}${IGNORE_IP_LIST}"
 
-        if [ "$FIREWALL" = "apf" ]; then
-            $APF -d $CURR_LINE_IP
-        elif [ "$FIREWALL" = "csf" ]; then
-            $CSF -d $CURR_LINE_IP
-        elif [ "$FIREWALL" = "iptables" ]; then
-            $IPT -I INPUT -s $CURR_LINE_IP -j REJECT
-        fi
+		ban_ip_now $CURR_LINE_IP $BAN_PERIOD
 
-		echo "Kill all TCP connections"
-		tcpkill $CURR_LINE_IP
-
-        log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections for ban period $BAN_PERIOD"
+        log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections on service $SERVICE for ban period $BAN_PERIOD"
     done < $BAD_IP_LIST
 
     if [ $IP_BAN_NOW -eq 1 ]; then
@@ -396,6 +415,18 @@ daemon_running()
     echo "0"
 }
 
+start_daemon_debug() {
+	su_required
+
+    if [ $(daemon_running) = "1" ]; then
+        echo "ddos daemon is already running..."
+        exit 0
+    fi
+
+    echo "starting ddos daemon for debugging..."
+
+    $0 -l
+}
 start_daemon()
 {
     su_required
@@ -536,6 +567,11 @@ while [ $1 ]; do
             ;;
         '--status' | '-t' )
             daemon_status
+            exit
+            ;;
+        '--debug')
+			stop_daemon
+            start_daemon_debug
             exit
             ;;
         '--loop' | '-l' )
