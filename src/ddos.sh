@@ -15,6 +15,7 @@
 CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 BANNED_DB="/var/lib/ddos/banned.ip.db"
+LOG_FILE="/var/log/ddos.log"
 
 load_conf()
 {
@@ -69,12 +70,12 @@ su_required()
 
 log_msg()
 {
-    if [ ! -e /var/log/ddos.log ]; then
-        touch /var/log/ddos.log
-        chmod 0640 /var/log/ddos.log
+    if [ ! -e $LOG_FILE ]; then
+        touch $LOG_FILE
+        chmod 0640 $LOG_FILE
     fi
 
-    echo "$(date +'[%Y-%m-%d %T]') $1" >> /var/log/ddos.log
+    echo "$(date +'[%Y-%m-%d %T]') $1" >> $LOG_FILE
 }
 
 # Define a timestamp function
@@ -168,7 +169,9 @@ ban_ip_now() {
 }
 
 list_banned_ip() {
-	cat $BANNED_DB
+	if [ -f "$BANNED_DB" ] && [ ! "$BANNED_DB" == "" ]; then
+		grep -v -e '^$' $BANNED_DB
+	fi
 }
 
 unban_ip_now() {
@@ -182,7 +185,7 @@ unban_ip_now() {
 		$IPT -D INPUT -s $IP_TO_UNBAN -j REJECT
 	fi
 
-	echo "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN" >> /var/log/ddos.log
+	echo "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN" >> $LOG_FILE
 
 	echo "Removing banned IP $IP_TO_UNBAN from database";
 	sed -i.bak "/^$IP_TO_UNBAN/d" $BANNED_DB
@@ -192,7 +195,7 @@ kill_connections() {
 	IP_TO_KILL=$1;
 
 	echo "Kill all TCP connections with host $IP_TO_KILL"
-	tcpkill host $IP_TO_KILL &
+	tcpkill host $IP_TO_KILL >> 2>>LOG_FILE 1>>LOG_FILE &
 	sleep 10
 	for child in $(jobs -p); do
 		kill "$child"
@@ -573,6 +576,9 @@ while [ $1 ]; do
             exit
             ;;
         '--free-banned' | '-f' )
+			echo "List of currently whitelisted IPs"
+            echo "==================================="
+			list_banned_ip
 			echo "Checking if there are IPs to unban..."
             free_banned
 			echo "Done!"
