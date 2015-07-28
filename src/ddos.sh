@@ -161,7 +161,7 @@ ban_ip_now() {
 		$IPT -I INPUT -s $IP_TO_BAN -j REJECT
 	fi
 
-	kill_connections $IP_TO_BAN
+	kill_connections $IP_TO_BAN &
 
 	echo "Adding banned IP to database";
 	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS" >> $BANNED_DB
@@ -185,7 +185,8 @@ unban_ip_now() {
 	echo "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN" >> /var/log/ddos.log
 
 	echo "Removing banned IP $IP_TO_UNBAN from database";
-	sed -i.bak '/^$IP_TO_UNBAN/d' $BANNED_DB
+	sed -i.bak "/^$IP_TO_UNBAN/d" $BANNED_DB
+	cat $BANNED_DB
 }
 kill_connections() {
 	IP_TO_KILL=$1;
@@ -204,16 +205,16 @@ free_banned() {
     if [ -f "$BANNED_DB" ] && [ ! "$BANNED_DB" == "" ]; then
         while read line; do
 			[ -z "$line" ] && continue
-			echo "$line";
+			#echo "$line";
 			IP_TO_CHECK=$(echo $line | awk '{print $1}')
 			START_TIME=$(echo $line | awk '{print $2}')
 			END_TIME=$(echo $line | awk '{print $3}')
 			END_TIME_HUMAN=$(timetodate $END_TIME);
 			NOW=$(timestamp)
 			TIME_LEFT=$(($END_TIME - $NOW))
-			echo "IP $IP_TO_CHECK will be free at $END_TIME \($END_TIME_HUMAN\), $TIME_LEFT seconds left";
+			echo "IP $IP_TO_CHECK will be free at $END_TIME ($END_TIME_HUMAN) $TIME_LEFT seconds left";
 
-			if (( "$TIME_LEFT" >= 0 )); then
+			if (( "$TIME_LEFT" <= 0 )); then
 				echo "Block on $IP_TO_CHECK is expired";
 				unban_ip_now $line
 			else
