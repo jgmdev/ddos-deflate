@@ -132,13 +132,13 @@ ban_ip_now() {
 	START_TIME=timestamp;
 	END_TIME=$(timestamp + $TIME_TO_BAN);
 
-	if [$3 = "" ]; then
+	if [ -z $3 ]; then
 		SERVICE="manual";
 	else
 		SERVICE=$3;
 	fi
 
-	if [$4 = "" ]; then
+	if [ -z $4 ]; then
 		NUM_OF_CONNECTIONS="-";
 	else
 		NUM_OF_CONNECTIONS=$4;
@@ -195,13 +195,16 @@ free_banned() {
     if [ -f "$BANNED_DB" ] && [ ! "$BANNED_DB" == "" ]; then
         while read line; do
 			[ -z "$line" ] && continue
+			echo "$line";
 			IP_TO_CHECK=$(awk '{print $1}' $line);
 			START_TIME=$(awk '{print $2}' $line)
 			END_TIME=$(awk '{print $3}' $line)
-			END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME_HUMAN);
+			END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME);
 			NOW=timestamp
+			TIME_LEFT=($END_TIME - $NOW)
+			echo "IP $IP_TO_CHECK was banned on $START_TIME and will be free at $END_TIME \($END_TIME_HUMAN\), $TIME_LEFT seconds left";
 
-			if ( $NOW > $END_TIME ); then
+			if ( $TIME_LEFT < 0 ); then
 				echo "Block on $IP_TO_CHECK expired";
 				unban_ip_now $line
 			else
