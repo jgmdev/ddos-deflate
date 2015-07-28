@@ -158,7 +158,7 @@ ban_ip_now() {
 	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS" >> $BANNED_DB
 }
 
-listed_banned_ip() {
+list_banned_ip() {
 	cat BANNED_DB
 }
 
@@ -197,8 +197,9 @@ free_banned() {
 		START_TIME=$(awk '{print $2}' $line)
 		END_TIME=$(awk '{print $2}' $line)
 		END_TIME_HUMAN=$(date -d @$END_TIME)
+		NOW=timestamp
 
-		if [ timestamp > END_TIME ];
+		if ( $NOW > $END_TIME );
 			echo "Block on $IP_TO_CHECK expired"
 			unban_ip_now $line
 		else
@@ -209,37 +210,10 @@ free_banned() {
 unban_ip_list()
 {
     UNBAN_SCRIPT=`mktemp /tmp/unban.sh.XXXXXXXX`
-#    TMP_FILE=`mktemp /tmp/unban.tmp.XXXXXXXX`
-    UNBAN_IP_LIST=`mktemp /tmp/unban.ip.XXXXXXXX`
-
     echo '#!/bin/sh' > $UNBAN_SCRIPT
     echo "sleep $BAN_PERIOD" >> $UNBAN_SCRIPT
-	
-
-	while read line; do
-
-#		if [ "$FIREWALL" = "apf" ]; then
-#			echo "$APF -u $line" >> $UNBAN_SCRIPT
-#		elif [ "$FIREWALL" = "csf" ]; then
-#			echo "$CSF -dr $line" >> $UNBAN_SCRIPT
-#		elif [ "$FIREWALL" = "iptables" ]; then
-#			echo "$IPT -D INPUT -s $line -j REJECT" >> $UNBAN_SCRIPT
-#		fi
-
-#		echo "echo \"\$(date +'[%Y-%m-%d %T]') unbanned $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
-
-		echo "$SBINDIR/ddos -u $line" >> $UNBAN_SCRIPT
-		echo $line >> $UNBAN_IP_LIST
-
-	done < $BANNED_IP_LIST
-
-#    echo "grep -v --file=$UNBAN_IP_LIST ${CONF_PATH}${IGNORE_IP_LIST} > $TMP_FILE" >> $UNBAN_SCRIPT
-#    echo "mv $TMP_FILE ${CONF_PATH}${IGNORE_IP_LIST}" >> $UNBAN_SCRIPT
+    echo "$SBINDIR/ddos -f" >> $UNBAN_SCRIPT
     echo "rm -f $UNBAN_SCRIPT" >> $UNBAN_SCRIPT
-    echo "rm -f $UNBAN_IP_LIST" >> $UNBAN_SCRIPT
-#    echo "rm -f $TMP_FILE" >> $UNBAN_SCRIPT
-
-    # Launch script in charge of unbanning after the given period of time
     . $UNBAN_SCRIPT &
 }
 
