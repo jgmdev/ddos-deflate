@@ -79,7 +79,7 @@ log_msg()
 
 # Define a timestamp function
 timestamp() {
-  date +"%T"
+  date +"%s"
 }
 # Create full list of IP to ignore
 ignore_list()
@@ -129,8 +129,8 @@ get_know_hosts() {
 ban_ip_now() {
 	IP_TO_BAN=$1;
 	TIME_TO_BAN=$2;
-	START_TIME=timestamp;
-	END_TIME=$(timestamp + $TIME_TO_BAN);
+	START_TIME=$(timestamp);
+	END_TIME=$((timestamp + $TIME_TO_BAN));
 
 	if [ -z $3 ]; then
 		SERVICE="manual";
@@ -196,9 +196,9 @@ free_banned() {
         while read line; do
 			[ -z "$line" ] && continue
 			echo "$line";
-			IP_TO_CHECK=$(awk '{print $1}' $line);
-			START_TIME=$(awk '{print $2}' $line)
-			END_TIME=$(awk '{print $3}' $line)
+			IP_TO_CHECK=`awk '{print $1}' $line`
+			START_TIME=`awk '{print $2}' $line`
+			END_TIME=`awk '{print $3}' $line`
 			END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME);
 			NOW=timestamp
 			TIME_LEFT=($END_TIME - $NOW)
