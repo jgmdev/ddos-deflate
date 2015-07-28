@@ -192,26 +192,24 @@ kill_connections() {
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
 free_banned() {
-	FOUND=$(cat $BANNED_DB)
-    if [ "$FOUND" = "" ]; then
-		echo "There are no banned IP to free";
-        return 0
+    if [ -f "$BANNED_DB" ] && [ ! "$BANNED_DB" == "" ]; then
+        while read line; do
+			IP_TO_CHECK=$(awk '{print $1}' $line);
+			START_TIME=$(awk '{print $2}' $line)
+			END_TIME=$(awk '{print $3}' $line)
+			END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME_HUMAN);
+			NOW=timestamp
+
+			if ( $NOW > $END_TIME ); then
+				echo "Block on $IP_TO_CHECK expired";
+				unban_ip_now $line
+			else
+				echo "IP $IP_TO_CHECK remain blocked till $END_TIME_HUMAN"
+			fi
+		done < $BANNED_DB
+    else
+        echo "" > $BANNED_DB
     fi
-
-	while read line; do
-		IP_TO_CHECK=$(awk '{print $1}' $line);
-		START_TIME=$(awk '{print $2}' $line)
-		END_TIME=$(awk '{print $3}' $line)
-		END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME_HUMAN);
-		NOW=timestamp
-
-		if ( $NOW > $END_TIME ); then
-			echo "Block on $IP_TO_CHECK expired";
-			unban_ip_now $line
-		else
-			echo "IP $IP_TO_CHECK remain blocked till $END_TIME_HUMAN"
-		fi
-	done < $FOUND
 }
 unban_ip_list()
 {
