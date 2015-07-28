@@ -41,14 +41,16 @@ showhelp()
     echo 'N : number of tcp/udp connections (default 150)'
     echo
     echo 'OPTIONS:'
-    echo '-h | --help: Show this help screen'
-    echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
+    echo '-h | --help:	Show this help screen'
+    echo '-b | --ban:	Ban an IP immediatly'
+    echo '-u | --unban:	Unban an IP immediatly'
+    echo '-c | --cron:	Create cron job to run this script regularly (default 1 mins)'
     echo '-i | --ignore-list: List whitelisted ip addresses'
-    echo '-d | --start: Initialize a daemon to monitor connections'
-    echo '-s | --stop: Stop the daemon'
+    echo '-d | --start:	Initialize a daemon to monitor connections'
+    echo '-s | --stop:	Stop the daemon'
     echo '-t | --status: Show status of daemon and pid if currently running'
-    echo '-v | --view: Display active connections to the server'
-    echo '-k | --kill: Block all ip addresses making more than N connections'
+    echo '-v | --view:	Display active connections to the server'
+    echo '-k | --kill:	Block all ip addresses making more than N connections'
 	echo '--startonboot [on|off]: Insert DDOS in the chkconfig to start when system boot'
 }
 
@@ -118,6 +120,20 @@ get_know_hosts() {
 	grep -v "#"  "${KNOW_HOST_FILE}" | awk '{print $1}'
 }
 
+
+unban_ip_now() {
+	IP_TO_UNBAN=$1;
+
+	if [ "$FIREWALL" = "apf" ]; then
+		$APF -u $IP_TO_UNBAN
+	elif [ "$FIREWALL" = "csf" ]; then
+		$CSF -dr $IP_TO_UNBAN
+	elif [ "$FIREWALL" = "iptables" ]; then
+		$IPT -D INPUT -s $IP_TO_UNBAN -j REJECT
+	fi
+
+	echo "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN" >> /var/log/ddos.log
+}
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
 unban_ip_list()
@@ -128,28 +144,34 @@ unban_ip_list()
 
     echo '#!/bin/sh' > $UNBAN_SCRIPT
     echo "sleep $BAN_PERIOD" >> $UNBAN_SCRIPT
+	
 
-    while read line; do
-        if [ "$FIREWALL" = "apf" ]; then
-            echo "$APF -u $line" >> $UNBAN_SCRIPT
-        elif [ "$FIREWALL" = "csf" ]; then
-            echo "$CSF -dr $line" >> $UNBAN_SCRIPT
-        elif [ "$FIREWALL" = "iptables" ]; then
-            echo "$IPT -D INPUT -s $line -j DROP" >> $UNBAN_SCRIPT
-        fi
+	while read line; do
 
-        echo "echo \"\$(date +'[%Y-%m-%d %T]') unbanned $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
-        echo $line >> $UNBAN_IP_LIST
-    done < $BANNED_IP_LIST
+#		if [ "$FIREWALL" = "apf" ]; then
+#			echo "$APF -u $line" >> $UNBAN_SCRIPT
+#		elif [ "$FIREWALL" = "csf" ]; then
+#			echo "$CSF -dr $line" >> $UNBAN_SCRIPT
+#		elif [ "$FIREWALL" = "iptables" ]; then
+#			echo "$IPT -D INPUT -s $line -j REJECT" >> $UNBAN_SCRIPT
+#		fi
 
-    echo "grep -v --file=$UNBAN_IP_LIST ${CONF_PATH}${IGNORE_IP_LIST} > $TMP_FILE" >> $UNBAN_SCRIPT
-    echo "mv $TMP_FILE ${CONF_PATH}${IGNORE_IP_LIST}" >> $UNBAN_SCRIPT
+#		echo "echo \"\$(date +'[%Y-%m-%d %T]') unbanned $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
+
+		echo "ddos -u $line" >> $UNBAN_SCRIPT
+		echo $line >> $UNBAN_IP_LIST
+
+	done < $BANNED_IP_LIST
+
+#    echo "grep -v --file=$UNBAN_IP_LIST ${CONF_PATH}${IGNORE_IP_LIST} > $TMP_FILE" >> $UNBAN_SCRIPT
+#    echo "mv $TMP_FILE ${CONF_PATH}${IGNORE_IP_LIST}" >> $UNBAN_SCRIPT
     echo "rm -f $UNBAN_SCRIPT" >> $UNBAN_SCRIPT
     echo "rm -f $UNBAN_IP_LIST" >> $UNBAN_SCRIPT
-    echo "rm -f $TMP_FILE" >> $UNBAN_SCRIPT
+#    echo "rm -f $TMP_FILE" >> $UNBAN_SCRIPT
 
     # Launch script in charge of unbanning after the given period of time
     . $UNBAN_SCRIPT &
+
 }
 
 add_to_cron()
@@ -245,7 +267,7 @@ check_service_connections()
         elif [ "$FIREWALL" = "csf" ]; then
             $CSF -d $CURR_LINE_IP
         elif [ "$FIREWALL" = "iptables" ]; then
-            $IPT -I INPUT -s $CURR_LINE_IP -j DROP
+            $IPT -I INPUT -s $CURR_LINE_IP -j REJECT
         fi
 
 		echo "Kill all TCP connections"
@@ -494,6 +516,16 @@ while [ $1 ]; do
             ignore_list
             exit
             ;;
+		'--ban' | '-b' )
+			echo "Ban now the following IP: $2"
+			ban_ip_now $2
+			exit
+			;;
+		'--unban' | '-u' )
+			echo "Delist now the following IP: $2"
+			unban_ip_now $2
+			exit
+			;;
         '--start' | '-d' )
             start_daemon
             exit
