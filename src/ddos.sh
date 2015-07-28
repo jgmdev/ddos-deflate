@@ -205,7 +205,7 @@ free_banned() {
 			IP_TO_CHECK=$(echo $line | awk '{print $1}')
 			START_TIME=$(echo $line | awk '{print $2}')
 			END_TIME=$(echo $line | awk '{print $3}')
-			END_TIME_HUMAN=$(awk 'strftime("%c", $0)' $END_TIME);
+			END_TIME_HUMAN=$(echo $END_TIME | awk 'strftime("%c", $0)');
 			NOW=timestamp
 			TIME_LEFT=($END_TIME - $NOW)
 			echo "IP $IP_TO_CHECK was banned on $START_TIME and will be free at $END_TIME \($END_TIME_HUMAN\), $TIME_LEFT seconds left";
@@ -214,7 +214,7 @@ free_banned() {
 				echo "Block on $IP_TO_CHECK expired";
 				unban_ip_now $line
 			else
-				echo "IP $IP_TO_CHECK remain blocked till $END_TIME_HUMAN"
+				echo "IP $IP_TO_CHECK will remain blocked till $END_TIME_HUMAN"
 			fi
 		done < $BANNED_DB
     else
