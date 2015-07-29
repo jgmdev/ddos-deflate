@@ -12,6 +12,7 @@
 #  read the LICENSE file before you make copies or distribute this program   #
 ##############################################################################
 
+SOFTWARE_VERSION="0.8.0"
 CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 BANNED_DB="/var/lib/ddos/banned.ip.db"
@@ -183,7 +184,14 @@ ban_ip_now() {
 		echo "Banned the following ip addresses on `date`:" > "$BANNED_IP_MAIL"
 		echo $MSG_TO_LOG >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
-		echo "DDOS 8.0 - rewritten by PhoenixWeb" >> "$BANNED_IP_MAIL"
+		echo "To unban this IP simply run: ddos -u $IP_TO_BAN" >> "$BANNED_IP_MAIL"
+		echo "To whitelist this IP run: echo $IP_TO_BAN >> /etc/ddos/ignore.ip.list" >> "$BANNED_IP_MAIL"
+		echo >> "$BANNED_IP_MAIL"
+		echo "List of all IP banned at the moment:"
+		list_banned_ip >>  "$BANNED_IP_MAIL"
+		echo >> "$BANNED_IP_MAIL"
+		echo "DDOS $SOFTWARE_VERSION - rewritten by PhoenixWeb" >> "$BANNED_IP_MAIL"
+		echo "2015 - Massimiliano Cuttini" >> "$BANNED_IP_MAIL"
 		cat "$BANNED_IP_MAIL" | mail -s "[$HOSTNAME] $SERVICE - IP $IP_TO_BAN banned on $dt" $EMAIL_TO
 		rm -rf "$BANNED_IP_MAIL"
 	fi
