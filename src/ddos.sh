@@ -162,7 +162,9 @@ ban_ip_now() {
 
 	START_TIME=$(timestamp);
 	END_TIME=$(($START_TIME + $TIME_TO_BAN));
-	IP_HOSTNAME=$(get_reverse_hostname $IP_TO_BAN);
+	IP_INFO=$(curl ipinfo.io/$IP_TO_BAN);
+	IP_COUNTRY=$(echo "$IP_INFO" | grep "country" | awk "{print $2}");
+	IP_HOSTNAME=$(echo "$IP_INFO" | grep "hostname" | awk "{print $2}");
 
 	if [ "$FIREWALL" = "apf" ]; then
 		$APF -d $IP_TO_BAN
@@ -175,7 +177,7 @@ ban_ip_now() {
 	kill_connections $IP_TO_BAN &
 
 	echo "Adding banned IP to database";
-	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS    $IP_HOSTNAME" >> $BANNED_DB
+	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS    $IP_COUNTRY    $IP_HOSTNAME" >> $BANNED_DB
 
 	MSG_TO_LOG="banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
 	log_msg $MSG_TO_LOG
@@ -188,8 +190,9 @@ ban_ip_now() {
 		echo "Banned the following ip addresses on `date`:" > "$BANNED_IP_MAIL"
 		echo $MSG_TO_LOG >> "$BANNED_IP_MAIL"
 		echo "IP info:" >> "$BANNED_IP_MAIL"
-		curl ipinfo.io/$IP_TO_BUN >> "$BANNED_IP_MAIL"
+		 >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
+		echo "------------------------------" >> "$BANNED_IP_MAIL"
 		echo "To unban this IP simply run:" >> "$BANNED_IP_MAIL"
 		echo "	#ddos -u $IP_TO_BAN" >> "$BANNED_IP_MAIL"
 		echo "To whitelist this IP run:" >> "$BANNED_IP_MAIL"
