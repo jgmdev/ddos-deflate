@@ -160,6 +160,12 @@ ban_ip_now() {
 		NUM_OF_CONNECTIONS=$4;
 	fi
 
+	IS_DUPLICATE=$(list_banned_ip | grep "$IP_TO_BAN")
+	if [ $IS_DUPLICATE != "" ]; then
+		echo "IP $IP_TO_BAN is already banned";
+		return;
+	fi
+
 	START_TIME=$(timestamp);
 	END_TIME=$(($START_TIME + $TIME_TO_BAN));
 	IP_INFO=$(curl -sS ipinfo.io/$IP_TO_BAN 2>/dev/null);
