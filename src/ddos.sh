@@ -165,7 +165,7 @@ ban_ip_now() {
 		echo "IP $IP_TO_BAN is already banned";
 		return;
 	fi
-
+	
 	START_TIME=$(timestamp);
 	END_TIME=$(($START_TIME + $TIME_TO_BAN));
 	IP_INFO=$(curl -sS ipinfo.io/$IP_TO_BAN 2>/dev/null);
@@ -610,6 +610,7 @@ while [ $1 ]; do
 			list_banned_ip
 			echo "==================================="
 			echo "Checking if there are IPs to unban..."
+			detect_firewall
             free_banned
 			echo "Done!"
             exit
@@ -696,7 +697,6 @@ while [ $1 ]; do
 done
 
 if [ $KILL -eq 1 ]; then
-    detect_firewall
     check_connections
 else
     showhelp
