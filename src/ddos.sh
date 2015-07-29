@@ -590,11 +590,13 @@ while [ $1 ]; do
             exit
             ;;
 		'--ban' | '-b' )
+			su_required
 			echo "Ban now the following IP: $2"
 			ban_ip_now $2
 			exit
 			;;
 		'--unban' | '-u' )
+			su_required
 			echo "Delist now the following IP: $2"
 			unban_ip_now $2
 			exit
