@@ -191,7 +191,7 @@ ban_ip_now() {
 		echo $MSG_TO_LOG >> "$BANNED_IP_MAIL"
 		echo "------------------------------" >> "$BANNED_IP_MAIL"
 		echo "IP info:" >> "$BANNED_IP_MAIL"
-		printf $IP_INFO >> "$BANNED_IP_MAIL"
+		printf "$IP_INFO" >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
 		echo "------------------------------" >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"

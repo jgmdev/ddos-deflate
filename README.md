@@ -28,9 +28,11 @@ you use APF on your server in general, but deflate will work without it.)
 v 0.8.0
 * Drastically improved reliability
 * Kill all established connections
+* Track in every moment the list of banned IP
 * Avoid multiple ban of IP due to the established connections
 * It is possible to have different maximum connection for HTTP(s) services
-* It is possible to whitelist /etc/hosts ips
+* It is possible to whitelist IP included in /etc/hosts
+* Display detailed information of banned IP (country and hostname)
 * Net installer
 * Net upgrader
 
