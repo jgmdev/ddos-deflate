@@ -161,7 +161,7 @@ ban_ip_now() {
 	fi
 
 	IS_DUPLICATE=$(list_banned_ip | grep "$IP_TO_BAN")
-	if [ $IS_DUPLICATE != "" ]; then
+	if [ "$IS_DUPLICATE" != "" ]; then
 		echo "IP $IP_TO_BAN is already banned";
 		return;
 	fi
