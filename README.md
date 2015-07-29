@@ -26,6 +26,7 @@ you use APF on your server in general, but deflate will work without it.)
 ### Notable Features
 
 v 0.8.0
+* Drastically improved reliability
 * Kill all established connections
 * Avoid multiple ban of IP due to the established connections
 * It is possible to have different maximum connection for HTTP(s) services

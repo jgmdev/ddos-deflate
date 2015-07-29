@@ -44,15 +44,20 @@ showhelp()
     echo
     echo 'OPTIONS:'
     echo '-h | --help:	Show this help screen'
+	echo
+    echo '-v | --view:	Display active connections to the server'
     echo '-b | --ban:	Ban an IP immediatly'
     echo '-u | --unban:	Unban an IP immediatly'
-    echo '-c | --cron:	Create cron job to run this script regularly (default 1 mins)'
-    echo '-i | --ignore-list: List whitelisted ip addresses'
+    echo '-f | --free-banned: Check the expiration for all banned IP'
+    echo '-i | --ignore-list: Display whitelisted IP addresses'
+	echo
     echo '-d | --start:	Initialize a daemon to monitor connections'
     echo '-s | --stop:	Stop the daemon'
     echo '-t | --status: Show status of daemon and pid if currently running'
-    echo '-v | --view:	Display active connections to the server'
+	echo
     echo '-k | --kill:	Block all ip addresses making more than N connections'
+	echo
+    echo '-c | --cron:	[Deprecated] Create cron job to run this script regularly (default 1 mins)'
 	echo '--startonboot [on|off]: Insert DDOS in the chkconfig to start when system boot'
 }
 
