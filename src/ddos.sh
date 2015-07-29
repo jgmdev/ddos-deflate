@@ -624,12 +624,14 @@ while [ $1 ]; do
 		'--ban' | '-b' )
 			su_required
 			echo "Ban now the following IP: $2"
+			detect_firewall
 			ban_ip_now $2
 			exit
 			;;
 		'--unban' | '-u' )
 			su_required
 			echo "Delist now the following IP: $2"
+			detect_firewall
 			unban_ip_now $2
 			exit
 			;;
