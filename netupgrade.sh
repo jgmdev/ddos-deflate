@@ -7,7 +7,7 @@ fi
 
 if [ -d "$DESTDIR/usr/local/ddos" ]; then
 	service ddos stop
-	if [ -d ~/ddos-deflate-master/ ]; then
+	if [ -d "~/ddos-deflate-master/" ]; then
 		mv ~/ddos-deflate-master ~/ddos-deflate
 	fi
 	cd ~/ddos-deflate/
