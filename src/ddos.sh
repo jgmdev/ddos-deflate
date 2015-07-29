@@ -252,7 +252,19 @@ kill_connections() {
 
 	echo "Kill all TCP connections with host $IP_TO_KILL"
 	tcpkill host $IP_TO_KILL >> $LOG_FILE 2>&1 &
-	sleep 10
+	
+	x=1
+	while [ $x -le 60 ]; do
+		NUM_CONNECTION_ALIVE=$(view_ip_connections $IP_TO_KILL)
+		if [ "$NUM_CONNECTION_ALIVE" = "" ]; then
+			echo "Killed all connection to $IP_TO_KILL" >> $LOG_FILE
+			break;
+		else
+			echo "Waiting to kill all connection on $IP_TO_KILL, still $NUM_CONNECTION_ALIVE connections ($x seconds since tcpkill)..."  >> $LOG_FILE
+			sleep 1
+		fi
+		x=$(( $x + 1 ))
+	done
 	for child in $(jobs -p); do
 		kill "$child" >> $LOG_FILE 2>&1
 	done
