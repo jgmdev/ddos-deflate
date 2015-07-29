@@ -163,8 +163,8 @@ ban_ip_now() {
 	START_TIME=$(timestamp);
 	END_TIME=$(($START_TIME + $TIME_TO_BAN));
 	IP_INFO=$(curl ipinfo.io/$IP_TO_BAN);
-	IP_COUNTRY=$(echo "$IP_INFO" | grep "country" | awk "{print $2}");
-	IP_HOSTNAME=$(echo "$IP_INFO" | grep "hostname" | awk "{print $2}");
+	IP_COUNTRY=$(echo "$IP_INFO" | grep -Po '"country":.*?"[^\\]",');
+	IP_HOSTNAME=$(echo "$IP_INFO" | grep -Po '"hostname":.*?"[^\\]",');
 
 	if [ "$FIREWALL" = "apf" ]; then
 		$APF -d $IP_TO_BAN
@@ -190,7 +190,7 @@ ban_ip_now() {
 		echo "Banned the following ip addresses on `date`:" > "$BANNED_IP_MAIL"
 		echo $MSG_TO_LOG >> "$BANNED_IP_MAIL"
 		echo "IP info:" >> "$BANNED_IP_MAIL"
-		 >> "$BANNED_IP_MAIL"
+		echo $IP_INFO >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
 		echo "------------------------------" >> "$BANNED_IP_MAIL"
 		echo "To unban this IP simply run:" >> "$BANNED_IP_MAIL"
