@@ -91,6 +91,9 @@ timestamp() {
 timetodate() {
 	date -d @$1
 }
+get_reverse_hostname() {
+	dig +noall +answer -x $1
+}
 # Create full list of IP to ignore
 ignore_list()
 {
@@ -159,6 +162,7 @@ ban_ip_now() {
 
 	START_TIME=$(timestamp);
 	END_TIME=$(($START_TIME + $TIME_TO_BAN));
+	IP_HOSTNAME=$(get_reverse_hostname $IP_TO_BAN);
 
 	if [ "$FIREWALL" = "apf" ]; then
 		$APF -d $IP_TO_BAN
@@ -171,7 +175,7 @@ ban_ip_now() {
 	kill_connections $IP_TO_BAN &
 
 	echo "Adding banned IP to database";
-	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS" >> $BANNED_DB
+	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS    $IP_HOSTNAME" >> $BANNED_DB
 
 	MSG_TO_LOG="banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
 	log_msg $MSG_TO_LOG
@@ -184,12 +188,16 @@ ban_ip_now() {
 		echo "Banned the following ip addresses on `date`:" > "$BANNED_IP_MAIL"
 		echo $MSG_TO_LOG >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
-		echo "To unban this IP simply run: ddos -u $IP_TO_BAN" >> "$BANNED_IP_MAIL"
-		echo "To whitelist this IP run: echo $IP_TO_BAN >> /etc/ddos/ignore.ip.list" >> "$BANNED_IP_MAIL"
+		echo "To unban this IP simply run:" >> "$BANNED_IP_MAIL"
+		echo "	#ddos -u $IP_TO_BAN" >> "$BANNED_IP_MAIL"
+		echo "To whitelist this IP run:" >>
+		echo "	#echo $IP_TO_BAN >> /etc/ddos/ignore.ip.list" >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
-		echo "List of all IP banned at the moment:"
+		echo "------------------------------" >> "$BANNED_IP_MAIL"
+		echo "List of all IP banned at the moment:" >>  "$BANNED_IP_MAIL"
 		list_banned_ip >>  "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
+		echo "************************************" >>  "$BANNED_IP_MAIL"
 		echo "DDOS $SOFTWARE_VERSION - rewritten by PhoenixWeb" >> "$BANNED_IP_MAIL"
 		echo "2015 - Massimiliano Cuttini" >> "$BANNED_IP_MAIL"
 		cat "$BANNED_IP_MAIL" | mail -s "[$HOSTNAME] $SERVICE - IP $IP_TO_BAN banned on $dt" $EMAIL_TO
