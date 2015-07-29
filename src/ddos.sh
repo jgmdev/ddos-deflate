@@ -208,6 +208,11 @@ ban_ip_now() {
 		echo >> "$BANNED_IP_MAIL"
 		echo "------------------------------" >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
+		echo "List of all connections opened by this IP:" >>  "$BANNED_IP_MAIL"
+		view_ip_connections $IP_TO_BAN >>  "$BANNED_IP_MAIL"
+		echo >> "$BANNED_IP_MAIL"
+		echo "------------------------------" >> "$BANNED_IP_MAIL"
+		echo >> "$BANNED_IP_MAIL"
 		echo "List of all IP banned at the moment:" >>  "$BANNED_IP_MAIL"
 		list_banned_ip >>  "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
@@ -378,6 +383,16 @@ check_service_connections()
 }
 
 # Active connections to server.
+view_ip_connections()
+{
+    netstat -ntu | \
+        # Strip netstat heading
+        tail -n +3 | \
+        # Match only the given connection states
+        grep -E "$CONN_STATES" | \
+        # Extract only the fifth column
+        grep -E "$1"
+}
 view_connections()
 {
     netstat -ntu | \
