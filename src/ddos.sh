@@ -192,7 +192,7 @@ ban_ip_now() {
 		echo >> "$BANNED_IP_MAIL"
 		echo "To unban this IP simply run:" >> "$BANNED_IP_MAIL"
 		echo "	#ddos -u $IP_TO_BAN" >> "$BANNED_IP_MAIL"
-		echo "To whitelist this IP run:" >>
+		echo "To whitelist this IP run:" >> "$BANNED_IP_MAIL"
 		echo "	#echo $IP_TO_BAN >> /etc/ddos/ignore.ip.list" >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
 		echo "------------------------------" >> "$BANNED_IP_MAIL"
