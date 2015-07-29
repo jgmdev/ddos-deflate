@@ -187,6 +187,8 @@ ban_ip_now() {
 		BANNED_IP_MAIL=`mktemp ddos.mail.file.XXXX`
 		echo "Banned the following ip addresses on `date`:" > "$BANNED_IP_MAIL"
 		echo $MSG_TO_LOG >> "$BANNED_IP_MAIL"
+		echo "IP info:" >> "$BANNED_IP_MAIL"
+		curl ipinfo.io/$IP_TO_BUN >> "$BANNED_IP_MAIL"
 		echo >> "$BANNED_IP_MAIL"
 		echo "To unban this IP simply run:" >> "$BANNED_IP_MAIL"
 		echo "	#ddos -u $IP_TO_BAN" >> "$BANNED_IP_MAIL"
