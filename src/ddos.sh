@@ -162,7 +162,7 @@ ban_ip_now() {
 
 	START_TIME=$(timestamp);
 	END_TIME=$(($START_TIME + $TIME_TO_BAN));
-	IP_INFO=$(curl ipinfo.io/$IP_TO_BAN);
+	IP_INFO=$(curl -sS ipinfo.io/$IP_TO_BAN 2>/dev/null);
 	IP_COUNTRY=$(echo "$IP_INFO" | grep '"country":' |  sed 's/.*\"country\"\: "\([^ ]*\)",\?$/\1/';
 	IP_HOSTNAME=$(echo "$IP_INFO" | grep '"hostname":' | sed 's/.*\"hostname\"\: "\([^ ]*\)",\?$/\1/');
 
