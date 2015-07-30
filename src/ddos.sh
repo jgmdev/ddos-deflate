@@ -273,7 +273,7 @@ kill_connections() {
 	for child in $(jobs -p); do
 		kill "$child" 2>&1 | log_stream
 	done
-	wait $(jobs -p) 2>&1 | log_stream
+	#wait $(jobs -p) 2>&1 | log_stream
 }
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
