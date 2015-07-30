@@ -83,6 +83,12 @@ log_msg()
 
     echo "$(date +'[%Y-%m-%d %T]') $1" >> $LOG_FILE
 }
+log_stream()
+{
+	while read data; do
+		printf "$(date +'[%Y-%m-%d %T]') $data" >> $LOG_FILE
+	done
+}
 
 # Define a timestamp function
 timestamp() {
@@ -250,7 +256,7 @@ kill_connections() {
 	IP_TO_KILL=$1;
 
 	log_msg "Kill all TCP connections with host $IP_TO_KILL"
-	tcpkill host $IP_TO_KILL 2>&1 &
+	tcpkill host $IP_TO_KILL 2>&1 >> log_stream &
 	
 	x=1
 	while [ $x -le 60 ]; do
@@ -265,9 +271,9 @@ kill_connections() {
 		x=$(( $x + 1 ))
 	done
 	for child in $(jobs -p); do
-		kill "$child" 2>&1 | log_msg
+		kill "$child" 2>&1 >> log_stream
 	done
-	wait $(jobs -p) 2>&1 | log_msg
+	wait $(jobs -p) 2>&1 >> log_stream
 }
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
