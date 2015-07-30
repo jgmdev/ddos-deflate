@@ -191,7 +191,8 @@ ban_ip_now() {
 	echo "Adding banned IP $IP_TO_BAN to database";
 	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS    $IP_COUNTRY    $IP_HOSTNAME" >> $BANNED_DB
 
-	log_msg "banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
+	MSG_TO_LOG="banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
+	log_msg $MSG_TO_LOG
 
 	unban_ip_list
 
