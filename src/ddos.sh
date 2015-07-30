@@ -262,11 +262,11 @@ kill_connections() {
 	while [ $x -le 60 ]; do
 		NUM_CONNECTION_ALIVE=$(view_ip_connections $IP_TO_KILL | wc -l)
 		if [ "$NUM_CONNECTION_ALIVE" -gt 0 ]; then
-			log_msg "Killed all connection to $IP_TO_KILL"
-			break;
-		else
 			log_msg "Waiting to kill all connection on $IP_TO_KILL, still $NUM_CONNECTION_ALIVE connections ($x seconds since tcpkill)..."
 			sleep 1
+		else
+			log_msg "Killed all connection to $IP_TO_KILL"
+			break;
 		fi
 		x=$(( $x + 1 ))
 	done
