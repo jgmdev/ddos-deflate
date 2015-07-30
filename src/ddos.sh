@@ -186,7 +186,7 @@ ban_ip_now() {
 		$IPT -I INPUT -s $IP_TO_BAN -j REJECT
 	fi
 
-	kill_connections $IP_TO_BAN &
+	kill_connections $IP_TO_BAN | log_stream &
 
 	echo "Adding banned IP $IP_TO_BAN to database";
 	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS    $IP_COUNTRY    $IP_HOSTNAME" >> $BANNED_DB
