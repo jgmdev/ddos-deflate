@@ -255,7 +255,7 @@ kill_connections() {
 	x=1
 	while [ $x -le 60 ]; do
 		NUM_CONNECTION_ALIVE=$(view_ip_connections $IP_TO_KILL | wc -l)
-		if [ "$NUM_CONNECTION_ALIVE" = "" ]; then
+		if [ "$NUM_CONNECTION_ALIVE" -gt 0 ]; then
 			log_msg "Killed all connection to $IP_TO_KILL"
 			break;
 		else
