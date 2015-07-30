@@ -182,11 +182,10 @@ ban_ip_now() {
 
 	kill_connections $IP_TO_BAN &
 
-	echo "Adding banned IP to database";
+	echo "Adding banned IP $IP_TO_BAN to database";
 	echo "$IP_TO_BAN    $START_TIME    $END_TIME    $SERVICE    $NUM_OF_CONNECTIONS    $IP_COUNTRY    $IP_HOSTNAME" >> $BANNED_DB
 
-	MSG_TO_LOG="banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
-	log_msg $MSG_TO_LOG
+	log_msg "banned $IP_TO_BAN with $NUM_OF_CONNECTIONS connections on service $SERVICE for ban period of $TIME_TO_BAN seconds"
 
 	unban_ip_list
 
@@ -245,30 +244,30 @@ unban_ip_now() {
 	echo "Removing banned IP $IP_TO_UNBAN from database";
 	sed -i.bak "/^$IP_TO_UNBAN/d" $BANNED_DB
 
-	log_msg "$(date +'[%Y-%m-%d %T]') unbanned $IP_TO_UNBAN"
+	log_msg "unbanned IP $IP_TO_UNBAN"
 }
 kill_connections() {
 	IP_TO_KILL=$1;
 
-	echo "Kill all TCP connections with host $IP_TO_KILL"
-	tcpkill host $IP_TO_KILL >> $LOG_FILE 2>&1 &
+	log_msg "Kill all TCP connections with host $IP_TO_KILL"
+	tcpkill host $IP_TO_KILL 2>&1 &
 	
 	x=1
 	while [ $x -le 60 ]; do
-		NUM_CONNECTION_ALIVE=$(view_ip_connections $IP_TO_KILL)
+		NUM_CONNECTION_ALIVE=$(view_ip_connections $IP_TO_KILL | wc -l)
 		if [ "$NUM_CONNECTION_ALIVE" = "" ]; then
-			echo "Killed all connection to $IP_TO_KILL" >> $LOG_FILE
+			log_msg "Killed all connection to $IP_TO_KILL"
 			break;
 		else
-			echo "Waiting to kill all connection on $IP_TO_KILL, still $NUM_CONNECTION_ALIVE connections ($x seconds since tcpkill)..."  >> $LOG_FILE
+			log_msg "Waiting to kill all connection on $IP_TO_KILL, still $NUM_CONNECTION_ALIVE connections ($x seconds since tcpkill)..."
 			sleep 1
 		fi
 		x=$(( $x + 1 ))
 	done
 	for child in $(jobs -p); do
-		kill "$child" >> $LOG_FILE 2>&1
+		kill "$child" 2>&1 | log_msg
 	done
-	wait $(jobs -p) >> $LOG_FILE 2>&1
+	wait $(jobs -p) 2>&1 | log_msg
 }
 # Generates a shell script that unbans a list of ip's after the
 # amount of time given on BAN_PERIOD
