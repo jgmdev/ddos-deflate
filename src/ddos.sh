@@ -641,6 +641,7 @@ while [ $1 ]; do
     case $1 in
         '-h' | '--help' | '?' )
             showhelp
+			echo $FTP_PORTS
             exit
             ;;
         '--cron' | '-c' )
