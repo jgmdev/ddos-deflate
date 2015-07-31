@@ -123,7 +123,7 @@ ignore_list()
 
 get_ftp_ports() {
 	echo $FTP_PASSIVE_PORTS | tr "|" "\n"
-	seq -f $("cut -d: -f1 $FTP_PASSIVE_PORTS") $("cut -d: -f2 $FTP_PASSIVE_PORTS")
+	seq -f "$(cut -d: -f1 $FTP_PASSIVE_PORTS)" "$(cut -d: -f2 $FTP_PASSIVE_PORTS)"
 }
 
 # Gets the list of hosts to ignore
@@ -634,7 +634,7 @@ detect_firewall()
 }
 
 load_conf
-FTP_PORTS=$(get_ftp_ports)
+FTP_PORTS=$(get_ftp_ports | tr "\n" "|")
 KILL=0
 
 while [ $1 ]; do
