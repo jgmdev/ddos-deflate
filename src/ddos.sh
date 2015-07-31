@@ -17,7 +17,7 @@ CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 BANNED_DB="/var/lib/ddos/banned.ip.db"
 LOG_FILE="/var/log/ddos.log"
-FTP_PORTS=$(get_ftp_ports)
+
 load_conf()
 {
     CONF="${CONF_PATH}ddos.conf"
@@ -634,7 +634,7 @@ detect_firewall()
 }
 
 load_conf
-
+FTP_PORTS=$(get_ftp_ports)
 KILL=0
 
 while [ $1 ]; do
@@ -747,5 +747,5 @@ else
     showhelp
 fi
 
-echo $FTP_PORTS
+
 exit 0
