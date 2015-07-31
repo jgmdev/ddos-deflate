@@ -634,7 +634,7 @@ detect_firewall()
 }
 
 load_conf
-FTP_PORTS=$(get_ftp_ports | paste -s -d | )
+FTP_PORTS=$(get_ftp_ports | paste -s -d \| )
 KILL=0
 
 while [ $1 ]; do
