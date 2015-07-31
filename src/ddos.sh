@@ -122,7 +122,7 @@ ignore_list()
 }
 
 get_ftp_ports() {
-	echo $FTP_PASSIVE_PORTS | tr "|" "\n"
+	echo $FTP_ACTIVE_PORTS | tr "|" "\n"
 	seq "$(echo $FTP_PASSIVE_PORTS | cut -d: -f1 )" "$(echo $FTP_PASSIVE_PORTS | cut -d: -f2 )"
 }
 
@@ -634,7 +634,7 @@ detect_firewall()
 }
 
 load_conf
-FTP_PORTS=$(get_ftp_ports | tr "\n" "|")
+FTP_PORTS=$(get_ftp_ports | tr "\n" "|" | rev | cut -c 2- | rev)
 KILL=0
 
 while [ $1 ]; do
