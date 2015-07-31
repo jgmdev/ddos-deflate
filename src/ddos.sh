@@ -123,7 +123,7 @@ ignore_list()
 
 get_ftp_ports() {
 	echo $FTP_PASSIVE_PORTS | tr "|" "\n"
-	seq -f "$(echo $FTP_PASSIVE_PORTS | cut -d: -f1 )" "$(echo $FTP_PASSIVE_PORTS | -d: -f2)"
+	seq "$(echo $FTP_PASSIVE_PORTS | cut -d: -f1 )" "$(echo $FTP_PASSIVE_PORTS | cut -d: -f2 )"
 }
 
 # Gets the list of hosts to ignore
