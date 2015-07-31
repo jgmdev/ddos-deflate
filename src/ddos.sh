@@ -17,7 +17,7 @@ CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 BANNED_DB="/var/lib/ddos/banned.ip.db"
 LOG_FILE="/var/log/ddos.log"
-
+FTP_PORTS=$(get_ftp_ports)
 load_conf()
 {
     CONF="${CONF_PATH}ddos.conf"
@@ -119,6 +119,11 @@ ignore_list()
 	if [ "$USE_IGNORE_IP_LIST" = "1" ]; then
 		get_ignore_ips
     fi	
+}
+
+get_ftp_ports() {
+	echo $FTP_PASSIVE_PORTS | tr "|" "\n"
+	seq -f $("cut -d: -f1 $FTP_PASSIVE_PORTS") $("cut -d: -f2 $FTP_PASSIVE_PORTS")
 }
 
 # Gets the list of hosts to ignore
@@ -413,13 +418,18 @@ view_ip_connections()
 }
 view_connections()
 {
+	
     netstat -ntu | \
         # Strip netstat heading
         tail -n +3 | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column
-        awk '{print $5}' | \
+        awk '{print $5" "$4}' | \
+		# Exclude FTP ports
+		egrep -v ":($FTP_PORTS)$" | \
+		# Extract only source IP address
+		awk '{print $1}' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
         # Sort addresses for uniq to work correctly
@@ -737,4 +747,5 @@ else
     showhelp
 fi
 
+echo $FTP_PORTS
 exit 0
