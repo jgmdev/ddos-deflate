@@ -8,7 +8,7 @@ fi
 
 clear
 
-echo; echo 'Installing DOS-Deflate 0.8.0'; echo
+echo; echo 'Installing DOS-Deflate'; echo
 echo "Resolving dependencies";
 hash tcpkill 2>/dev/null || {
 	echo >&2 "I require tcpkill but it's not installed.  Installing it...";
@@ -37,7 +37,7 @@ if [ ! -d "/var/lib/ddos/" ]; then
 	mkdir -p "/var/lib/ddos/"
 fi
 
-echo; echo 'Installing DOS-Deflate 0.8.0'; echo
+echo; echo 'Installing DOS-Deflate'; echo
 
 if [ ! -e "$DESTDIR/etc/ddos/ddos.conf" ]; then
 	echo -n 'Adding: /etc/ddos/ddos.conf...'

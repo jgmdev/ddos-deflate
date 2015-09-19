@@ -12,7 +12,7 @@
 #  read the LICENSE file before you make copies or distribute this program   #
 ##############################################################################
 
-SOFTWARE_VERSION="0.8.0"
+SOFTWARE_VERSION="0.8.1"
 CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 BANNED_DB="/var/lib/ddos/banned.ip.db"
@@ -28,11 +28,14 @@ load_conf()
         echo "\$CONF not found."
         exit 1
     fi
+
+	FTP_PASSIVE_PORTS_START=$(echo $FTP_PASSIVE_PORTS | cut -d: -f1 );
+	FTP_PASSIVE_PORTS_END=$(echo $FTP_PASSIVE_PORTS | cut -d: -f2 );
 }
 
 head()
 {
-    echo "DDoS-Deflate version 0.8.0 Copyright (C) 2015, Massimiliano Cuttini"
+    echo "DDoS-Deflate version $SOFTWARE_VERSION Copyright (C) 2015, Massimiliano Cuttini"
     echo "DDoS-Deflate version 0.7.1 Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
@@ -119,11 +122,6 @@ ignore_list()
 	if [ "$USE_IGNORE_IP_LIST" = "1" ]; then
 		get_ignore_ips
     fi	
-}
-
-get_ftp_ports() {
-	echo $FTP_ACTIVE_PORTS | tr "|" "\n"
-	seq "$(echo $FTP_PASSIVE_PORTS | cut -d: -f1 )" "$(echo $FTP_PASSIVE_PORTS | cut -d: -f2 )"
 }
 
 # Gets the list of hosts to ignore
@@ -404,34 +402,35 @@ check_service_connections()
 
     rm -f $TMP_PREFIX.*
 }
-
+# Advanced Netstat
+netstatFormatted()
+{
+	netstat -ntu | \
+        # Strip netstat heading
+        tail -n +3 | \
+		# Separate Ports from IPv4 and IPv6 address
+		sed "s/:\([0-9+]*\s\)/\t\1\t/g"
+}
 # Active connections to server.
 view_ip_connections()
 {
-    netstat -ntu | \
-        # Strip netstat heading
-        tail -n +3 | \
+    netstatFormatted | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
-        # Extract only the fifth column
-        grep -E "$1"
+        # Extract only the IP given
+        awk -v x=$1 '($6 = x){print}'
 }
 view_connections()
 {
-	
-    netstat -ntu | \
-        # Strip netstat heading
-        tail -n +3 | \
+    netstatFormatted | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
-        # Extract only the fifth column
-        awk '{print $5" "$4}' | \
-		# Exclude FTP ports
-		egrep -v ":($FTP_PORTS)$" | \
+		# Exclude FTP Active Ports
+		awk -v x=$FTP_ACTIVE_PORTS '($5 !~ x){print}' | \
+		# Exclude FTP Passive ports
+		awk -v x=$FTP_PASSIVE_PORTS_START -v y=$FTP_PASSIVE_PORTS_STOP '!($5 >= x && $5 <= y){print}'  | \
 		# Extract only source IP address
-		awk '{print $1}' | \
-        # Strip port without affecting ipv6 addresses (experimental)
-        sed "s/:[0-9+]*$//g" | \
+		awk '{print $6}' | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
@@ -634,14 +633,12 @@ detect_firewall()
 }
 
 load_conf
-FTP_PORTS=$(get_ftp_ports | paste -s -d \| )
 KILL=0
 
 while [ $1 ]; do
     case $1 in
         '-h' | '--help' | '?' )
             showhelp
-			echo $FTP_PORTS
             exit
             ;;
         '--cron' | '-c' )
