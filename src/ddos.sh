@@ -12,7 +12,7 @@
 #  read the LICENSE file before you make copies or distribute this program   #
 ##############################################################################
 
-SOFTWARE_VERSION="0.8.0"
+SOFTWARE_VERSION="0.8.1"
 CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 BANNED_DB="/var/lib/ddos/banned.ip.db"
@@ -35,7 +35,7 @@ load_conf()
 
 head()
 {
-    echo "DDoS-Deflate version 0.8.1 Copyright (C) 2015, Massimiliano Cuttini"
+    echo "DDoS-Deflate version $SOFTWARE_VERSION Copyright (C) 2015, Massimiliano Cuttini"
     echo "DDoS-Deflate version 0.7.1 Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
@@ -418,7 +418,7 @@ view_ip_connections()
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
         # Extract only the IP given
-        grep -E "$1"
+        awk -v x=$1 '($6 = x){print}'
 }
 view_connections()
 {
@@ -426,9 +426,9 @@ view_connections()
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
 		# Exclude FTP Active Ports
-		awk -v x=$FTP_ACTIVE_PORTS '!($5 = /$x/){print}' | \
+		awk -v x=$FTP_ACTIVE_PORTS '($5 !~ x){print}' | \
 		# Exclude FTP Passive ports
-		awk -v x=$FTP_PASSIVE_PORTS_START -v y=$FTP_PASSIVE_PORTS_STOP '!($5 >= $x && $5 <= $y){print}'  | \
+		awk -v x=$FTP_PASSIVE_PORTS_START -v y=$FTP_PASSIVE_PORTS_STOP '!($5 >= x && $5 <= y){print}'  | \
 		# Extract only source IP address
 		awk '{print $6}' | \
         # Sort addresses for uniq to work correctly
