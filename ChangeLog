@@ -1,3 +1,11 @@
+ddos (0.8) stable; urgency=low
+
+  * It's possible to set different maximum connections based on service (extendable)
+  * Insert different maximum connections for HTTP(s) services
+  * Autowhitelist file /etc/hosts
+
+-- Massimiliano Cuttini  23 Jul 2015 18:33:00 +0200
+
 ddos (0.7) stable; urgency=low
   
   * Moved configuration files to /etc/ddos/

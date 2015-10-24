@@ -38,6 +38,11 @@ if [ -d '/usr/local/ddos' ]; then
 	rm -rf /usr/local/ddos
 	echo -n "."
 fi
+
+if [ -d '/var/lib/ddos' ]; then
+	rm -rf /var/lib/ddos
+	echo -n "."
+fi
 echo " (done)"
 
 echo -n "Removing man page..."

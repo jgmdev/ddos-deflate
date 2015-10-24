@@ -1,10 +1,12 @@
 # DDoS Deflate
+Fork of DDoS Deflate https://github.com/jgmdev/ddos-deflate
+with fixes, improvements and amazing features.
 Fork of DDoS Deflate http://deflate.medialayer.com/ with 
 fixes, improvements and new features.
 
 **Original Author:** Zaf <zaf@vsnl.com> (Copyright (C) 2005)
-
-**Maintainer:** Jefferson González <jgmdev@gmail.com>
+**Original Fork from:** Jefferson González <jgmdev@gmail.com>
+**Maintainer:** Massimiliano Cuttini
 
 ## About
 
@@ -23,6 +25,18 @@ you use APF on your server in general, but deflate will work without it.)
 
 ### Notable Features
 
+v 0.8.0
+* Drastically improved reliability
+* Kill all established connections
+* Track in every moment the list of banned IP
+* Avoid multiple ban of IP due to the established connections
+* It is possible to have different maximum connection for HTTP(s) services
+* It is possible to whitelist IP included in /etc/hosts
+* Display detailed information of banned IP (country and hostname)
+* Net installer
+* Net upgrader
+
+v 0.7.1
 * It is possible to whitelist IP addresses, via /etc/ddos/ignore.ip.list.
 * It is possible to whitelist hostnames, via /etc/ddos/ignore.host.list.
 * Simple configuration file: /etc/ddos/ddos.conf
@@ -40,10 +54,7 @@ you use APF on your server in general, but deflate will work without it.)
 As root user execute the following commands:
 
 ```shell
-wget https://github.com/jgmdev/ddos-deflate/archive/master.zip
-unzip master.zip
-cd ddos-deflate-master
-./install.sh
+sh <(curl -s https://raw.githubusercontent.com/phoenixweb/ddos-deflate/master/netinstall.sh)
 ```
 
 ## Uninstallation

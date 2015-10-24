@@ -8,11 +8,36 @@ fi
 
 clear
 
+echo; echo 'Installing DOS-Deflate'; echo
+echo "Resolving dependencies";
+hash tcpkill 2>/dev/null || {
+	echo >&2 "I require tcpkill but it's not installed.  Installing it...";
+
+	echo "Check if epel in installed";
+	EPEL_ENABLED=$(yum repolist all | grep "epel")
+	if [ "$EPEL_ENABLED" = "" ]; then
+		echo "Epel is not installed";
+		yum -y install epel-release
+		echo "Set epel to disable in order to do not mess with enabled repository"
+		sed -i.bak "s/enabled\=1/enabled\=0/g" "/etc/yum.repos.d/epel.repo"
+	else 
+		echo "Epel is already installed!"
+	fi
+	yum -y install dsniff --enablerepo=epel
+}
+
+
 if [ ! -d "$DESTDIR/etc/ddos" ]; then
+	echo "Adding $DESTDIR/etc/ddos directory"	
 	mkdir -p "$DESTDIR/etc/ddos"
 fi
 
-echo; echo 'Installing DOS-Deflate 0.7'; echo
+if [ ! -d "/var/lib/ddos/" ]; then
+	echo "Adding /var/lib/ddos directory"
+	mkdir -p "/var/lib/ddos/"
+fi
+
+echo; echo 'Installing DOS-Deflate'; echo
 
 if [ ! -e "$DESTDIR/etc/ddos/ddos.conf" ]; then
 	echo -n 'Adding: /etc/ddos/ddos.conf...'
@@ -78,6 +103,8 @@ if [ -d /etc/init.d ]; then
 		update-rc.d ddos defaults > /dev/null 2>&1
 		service ddos start > /dev/null 2>&1
 		echo " (done)"
+		echo "Start DDOS when the system is booting"
+		chkconfig --level 235 ddos on
 	else
 		echo "ddos service needs to be manually started... (warning)"
 	fi
@@ -109,7 +136,7 @@ echo; echo 'Installation has completed!'
 echo 'Config files are located at /etc/ddos/'
 echo
 echo 'Please send in your comments and/or suggestions to:'
-echo 'https://github.com/jgmdev/ddos-deflate/issues'
+echo 'https://github.com/phoenixweb/ddos-deflate/issues'
 echo
 
 exit 0
