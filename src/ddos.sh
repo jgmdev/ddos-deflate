@@ -338,7 +338,7 @@ start_daemon()
 
     echo "starting ddos daemon..."
 
-    cat "" > "${BANS_IP_LIST}"
+    echo "" > "${BANS_IP_LIST}"
 
     nohup $0 -l > /dev/null 2>&1 &
 
