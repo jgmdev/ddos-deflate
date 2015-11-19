@@ -12,29 +12,29 @@ ddos \- script to mitigate small denial of service attacks.
 
 .SH DESCRIPTION
 .PP
-(D)DoS Deflate is a lightweight bash shell script designed to assist in 
-the process of blocking a denial of service attack. It utilizes the 
-command below to create a list of IP addresses connected to the server, 
-along with their total number of connections. It is one of the simplest 
+(D)DoS Deflate is a lightweight bash shell script designed to assist in
+the process of blocking a denial of service attack. It utilizes the
+command below to create a list of IP addresses connected to the server,
+along with their total number of connections. It is one of the simplest
 and easiest to install solutions at the software level.
 
-.B netstat 
--ntu | 
-.B awk 
-\'{print $5}\' | 
-.B cut 
--d: -f1 | 
-.B sort 
-| 
-.B uniq 
--c | 
-.B sort 
+.B netstat
+-ntu |
+.B awk
+\'{print $5}\' |
+.B cut
+-d: -f1 |
+.B sort
+|
+.B uniq
+-c |
+.B sort
 -nr
 
 .PP
-IP addresses with over a pre-configured number of connections are 
-automatically blocked in the server's firewall, which can be direct 
-iptables or Advanced Policy Firewall (APF). (We highly recommend that 
+IP addresses with over a pre-configured number of connections are
+automatically blocked in the server's firewall, which can be direct
+iptables or Advanced Policy Firewall (APF). (We highly recommend that
 you use APF on your server in general, but deflate will work without it.)
 
 .SH OPTIONS
@@ -48,6 +48,9 @@ update or create cron job to run this script regularly
 .TP
 \fB\-i\fR, \fB\-\-ignore\-list\fR
 dsiplay a list of currently whitelisted ip addresses
+.TP
+\fB\-b\fR, \fB\-\-bans\-list\fR
+dsiplay a list of currently banned ip addresses
 .TP
 \fB\-d\fR, \fB\-\-start\fR
 initialize a daemon to monitor connections
@@ -67,13 +70,13 @@ block ip's making \fINUMBER_OF_CONNECTIONS\fR or more
 .SH WHITELISTING
 
 .PP
-It is possible to whitelist IP addresses by adding a 
-.B new-line 
+It is possible to whitelist IP addresses by adding a
+.B new-line
 separated list of ip's to /etc/ddos/ignore.ip.list
 
 .PP
-It is also possible to whitelist hostnames by adding a 
-.B new-line 
+It is also possible to whitelist hostnames by adding a
+.B new-line
 separated list of hosts to /etc/ddos/ignore.host.list
 
 .SH SETTINGS
@@ -81,8 +84,8 @@ You can modify the script settings by editing /etc/ddos/ddos.conf
 
 .TP
 .B FREQ = <number>
-Frequency in minutes for running the script. Every time this setting is 
-changed, run the script with --cron option so that the new frequency 
+Frequency in minutes for running the script. Every time this setting is
+changed, run the script with --cron option so that the new frequency
 takes effect. (Default: 1)
 
 .TP
@@ -110,8 +113,8 @@ Number of seconds the banned ip should remain in blacklist. (Default: 600)
 
 .TP
 .B CONN_STATES = '<valid netstat states>'
-Connection states separated by pipe operator to block. See: 
-.B netstat(1). 
+Connection states separated by pipe operator to block. See:
+.B netstat(1).
 (Default: "ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING")
 
 .SH FILES

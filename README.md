@@ -1,5 +1,5 @@
 # DDoS Deflate
-Fork of DDoS Deflate http://deflate.medialayer.com/ with 
+Fork of DDoS Deflate http://deflate.medialayer.com/ with
 fixes, improvements and new features.
 
 **Original Author:** Zaf <zaf@vsnl.com> (Copyright (C) 2005)
@@ -8,17 +8,17 @@ fixes, improvements and new features.
 
 ## About
 
-(D)DoS Deflate is a lightweight bash shell script designed to assist in 
-the process of blocking a denial of service attack. It utilizes the 
-command below to create a list of IP addresses connected to the server, 
-along with their total number of connections. It is one of the simplest 
+(D)DoS Deflate is a lightweight bash shell script designed to assist in
+the process of blocking a denial of service attack. It utilizes the
+command below to create a list of IP addresses connected to the server,
+along with their total number of connections. It is one of the simplest
 and easiest to install solutions at the software level.
 
 netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
 
-IP addresses with over a pre-configured number of connections are 
-automatically blocked in the server's firewall, which can be direct 
-iptables or Advanced Policy Firewall (APF). (We highly recommend that 
+IP addresses with over a pre-configured number of connections are
+automatically blocked in the server's firewall, which can be direct
+iptables or Advanced Policy Firewall (APF). (We highly recommend that
 you use APF on your server in general, but deflate will work without it.)
 
 ### Notable Features
@@ -107,38 +107,42 @@ When running the script as a cronjob no restarting is required.
 
 **ddos** [OPTIONS] [N]
 
-*N : number of tcp/udp	connections (default 150)*
+*N : number of tcp/udp  connections (default 150)*
 
 #### OPTIONS
 
 **-h | --help:**
 
    Show the help screen.
-    
+
 **-c | --cron:**
 
    Create cron job to run the script regularly (default 1 mins).
-    
+
 **-i | --ignore-list:**
 
    List whitelisted ip addresses.
-    
+
+**-b | --bans-list:**
+
+   List currently banned ip addresses.
+
 **-d | --start:**
 
    Initialize a daemon to monitor connections.
-    
+
 **-s | --stop:**
 
    Stop the daemon.
-    
+
 **-t | --status:**
 
    Show status of daemon and pid if currently running.
-   
+
 **-v | --view:**
 
    Display active connections to the server.
-    
+
 **-k | --kill:**
 
    Block all ip addresses making more than N connections.
