@@ -34,7 +34,6 @@ case "$1" in
         ;;
         stop)
             log_daemon_msg "Stopping $DESC " "$INAME"
-            /usr/local/sbin
             /usr/local/sbin/ddos --stop
             log_end_msg $?
             ;;
