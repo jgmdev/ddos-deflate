@@ -15,7 +15,7 @@
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-DAEMON=/usr/local/sbin
+DAEMON=/usr/local/sbin/ddos
 INAME="ddos-deflate"
 DESC="basic anti ddos system"
 LOGDIR=/var/log  # Log directory to use
