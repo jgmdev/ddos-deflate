@@ -13,20 +13,40 @@
 #
 # Jefferson Gonzalez <jgmdev@gmail.com>
 
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+DAEMON=/usr/local/sbin
+INAME="ddos-deflate"
+DESC="basic anti ddos system"
+LOGDIR=/var/log  # Log directory to use
+
+test -x $DAEMON || exit 0
+
+. /lib/lsb/init-functions
+
+set -e
+
 case "$1" in
         start)
-                ddos --start
+            log_daemon_msg "Starting $DESC " "$INAME"
+            /usr/local/sbin/ddos --start >> /dev/null 2>&1
+            log_end_msg $?
         ;;
         stop)
-                ddos --stop
-                ;;
+            log_daemon_msg "Stopping $DESC " "$INAME"
+            /usr/local/sbin
+            /usr/local/sbin/ddos --stop
+            log_end_msg $?
+            ;;
         status)
-                ddos --status
+            /usr/local/sbin/ddos --status
                 ;;
         restart)
-                ddos --stop
-                ddos --start
-                ;;
+            log_daemon_msg "Restarting $DESC " "$INAME"
+            /usr/local/sbin/ddos --stop
+            /usr/local/sbin/ddos --start
+            log_end_msg $?
+            ;;
         *)
         echo "Usage: /etc/init.d/ddos {start|stop|restart|status}"
         exit 1
