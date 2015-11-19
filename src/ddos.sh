@@ -1,6 +1,6 @@
 #!/bin/bash
 ##############################################################################
-# DDoS-Deflate version 0.7 Author: Zaf <zaf@vsnl.com>                        #
+# DDoS-Deflate version 0.8 Author: Zaf <zaf@vsnl.com>                        #
 ##############################################################################
 # Contributors:                                                              #
 # Jefferson González <jgmdev@gmail.com>                                      #
@@ -8,11 +8,14 @@
 # This program is distributed under the "Artistic License" Agreement         #
 #                                                                            #
 # The LICENSE file is located in the same directory as this program. Please  #
-#  read the LICENSE file before you make copies or distribute this program   #
+# read the LICENSE file before you make copies or distribute this program    #
 ##############################################################################
 
 CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
+
+# Other variables
+BANS_IP_LIST="/tmp/ddos.bans.list"
 
 load_conf()
 {
@@ -28,7 +31,7 @@ load_conf()
 
 head()
 {
-    echo "DDoS-Deflate version 0.7"
+    echo "DDoS-Deflate version 0.8"
     echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
@@ -74,6 +77,7 @@ log_msg()
 
 # Gets a list of ip address to ignore with hostnames on the
 # ignore.host.list resolved to ip numbers
+# param1 can be set to 1 to also include the bans list
 ignore_list()
 {
     for the_host in $(grep -v "#" "${CONF_PATH}${IGNORE_HOST_LIST}"); do
@@ -96,6 +100,10 @@ ignore_list()
     done
 
     grep -v "#" "${CONF_PATH}${IGNORE_IP_LIST}"
+
+    if [ "$1" = "1" ]; then
+        grep -v "#" "${BANS_IP_LIST}"
+    fi
 }
 
 # Generates a shell script that unbans a list of ip's after the
@@ -122,8 +130,8 @@ unban_ip_list()
         echo $line >> $UNBAN_IP_LIST
     done < $BANNED_IP_LIST
 
-    echo "grep -v --file=$UNBAN_IP_LIST ${CONF_PATH}${IGNORE_IP_LIST} > $TMP_FILE" >> $UNBAN_SCRIPT
-    echo "mv $TMP_FILE ${CONF_PATH}${IGNORE_IP_LIST}" >> $UNBAN_SCRIPT
+    echo "grep -v --file=$UNBAN_IP_LIST ${BANS_IP_LIST} > $TMP_FILE" >> $UNBAN_SCRIPT
+    echo "mv $TMP_FILE ${BANS_IP_LIST}" >> $UNBAN_SCRIPT
     echo "rm -f $UNBAN_SCRIPT" >> $UNBAN_SCRIPT
     echo "rm -f $UNBAN_IP_LIST" >> $UNBAN_SCRIPT
     echo "rm -f $TMP_FILE" >> $UNBAN_SCRIPT
@@ -213,7 +221,7 @@ check_connections()
         CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
         CURR_LINE_IP=$(echo $line | cut -d" " -f2)
 
-        IGNORE_BAN=`ignore_list | grep -c $CURR_LINE_IP`
+        IGNORE_BAN=`ignore_list "1" | grep -c $CURR_LINE_IP`
 
         if [ $IGNORE_BAN -ge 1 ]; then
             continue
@@ -223,7 +231,7 @@ check_connections()
 
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
         echo $CURR_LINE_IP >> $BANNED_IP_LIST
-        echo $CURR_LINE_IP >> "${CONF_PATH}${IGNORE_IP_LIST}"
+        echo $CURR_LINE_IP >> "${BANS_IP_LIST}"
 
         if [ "$FIREWALL" = "apf" ]; then
             $APF -d $CURR_LINE_IP
@@ -297,7 +305,7 @@ daemon_pid()
     echo "0"
 }
 
-# Check if daemon us running.
+# Check if daemon is running.
 # Outputs 1 if running 0 if not.
 daemon_running()
 {
@@ -329,6 +337,8 @@ start_daemon()
     fi
 
     echo "starting ddos daemon..."
+
+    cat "" > "${BANS_IP_LIST}"
 
     nohup $0 -l > /dev/null 2>&1 &
 
@@ -419,6 +429,25 @@ detect_firewall()
     fi
 }
 
+# Set Default settings
+PROGDIR="/usr/local/ddos"
+SBINDIR="/usr/local/sbin"
+PROG="$PROGDIR/ddos.sh"
+IGNORE_IP_LIST="ignore.ip.list"
+IGNORE_HOST_LIST="ignore.host.list"
+CRON="/etc/cron.d/ddos"
+APF="/usr/sbin/apf"
+CSF="/usr/sbin/csf"
+IPT="/sbin/iptables"
+FREQ=1
+DAEMON_FREQ=5
+NO_OF_CONNECTIONS=150
+FIREWALL="auto"
+EMAIL_TO="root"
+BAN_PERIOD=600
+CONN_STATES="ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING"
+
+# Load custom settings
 load_conf
 
 KILL=0
@@ -437,6 +466,14 @@ while [ $1 ]; do
             echo "List of currently whitelisted ip's."
             echo "==================================="
             ignore_list
+            exit
+            ;;
+        '--bans-list' | '-b' )
+            echo "List of currently banned ip's."
+            echo "==================================="
+            if [ -e "${BANS_IP_LIST}" ]; then
+                grep -v "#" "${BANS_IP_LIST}"
+            fi
             exit
             ;;
         '--start' | '-d' )

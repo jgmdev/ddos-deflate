@@ -1,5 +1,16 @@
+ddos (0.8) stable; urgency=low
+
+  * Use a separate bans list file instead of reusing the ignore
+    whitelisted file which is more secure on case of unexpected
+    system reboot.
+  * Added default settings to ddos script.
+  * Added --bans-list|-b option to view currently banned ip's.
+  * Added check for missing dependencies on installer script.
+
+ -- Jefferson González <jgmdev@gmail.com>  Fri, 09 Jan 2015 17:27:01 +0200
+
 ddos (0.7) stable; urgency=low
-  
+
   * Moved configuration files to /etc/ddos/
   * Whitelist hostnames, via /etc/ddos/ignore.host.list.
   * The script can run as a daemon with monitoring frequency in seconds defined by DAEMON_FREQ
