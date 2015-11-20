@@ -238,8 +238,6 @@ check_connections()
             $IPT -I INPUT -s $CURR_LINE_IP -j DROP
         fi
 
-        tcpkill host $CURR_LINE_IP > /dev/null 2>&1 &
-
         log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections for ban period $BAN_PERIOD"
     done < $BAD_IP_LIST
 

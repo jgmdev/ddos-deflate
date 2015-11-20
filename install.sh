@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check for required dependencies
-for dependency in nslookup netstat iptables ifconfig tcpkill awk sed grep; do
+for dependency in nslookup netstat iptables ifconfig awk sed grep; do
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
         echo "error: Required dependency '$dependency' is missing.";
