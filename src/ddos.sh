@@ -15,7 +15,7 @@ CONF_PATH="/etc/ddos"
 CONF_PATH="${CONF_PATH}/"
 
 # Other variables
-BANS_IP_LIST="/tmp/ddos.bans.list"
+BANS_IP_LIST="/var/lib/ddos/bans.list"
 
 load_conf()
 {
@@ -102,42 +102,37 @@ ignore_list()
     grep -v "#" "${CONF_PATH}${IGNORE_IP_LIST}"
 
     if [ "$1" = "1" ]; then
-        grep -v "#" "${BANS_IP_LIST}"
+        cut -d" " -f2 "${BANS_IP_LIST}"
     fi
 }
 
-# Generates a shell script that unbans a list of ip's after the
-# amount of time given on BAN_PERIOD
+# Unbans ip's after the amount of time given on BAN_PERIOD
 unban_ip_list()
 {
-    UNBAN_SCRIPT=`mktemp /tmp/unban.sh.XXXXXXXX`
-    TMP_FILE=`mktemp /tmp/unban.tmp.XXXXXXXX`
-    UNBAN_IP_LIST=`mktemp /tmp/unban.ip.XXXXXXXX`
-
-    echo '#!/bin/sh' > $UNBAN_SCRIPT
-    echo "sleep $BAN_PERIOD" >> $UNBAN_SCRIPT
+    current_unban_time=`date +"%s"`
 
     while read line; do
-        if [ "$FIREWALL" = "apf" ]; then
-            echo "$APF -u $line" >> $UNBAN_SCRIPT
-        elif [ "$FIREWALL" = "csf" ]; then
-            echo "$CSF -dr $line" >> $UNBAN_SCRIPT
-        elif [ "$FIREWALL" = "iptables" ]; then
-            echo "$IPT -D INPUT -s $line -j DROP" >> $UNBAN_SCRIPT
+        $time=`echo "$line" | cut -d" " -f1`
+        $ip=`echo "$line" | cut -d" " -f2`
+        $connections=`echo "$line" | cut -d" " -f3`
+
+        if [ $current_unban_time -gt $time ]; then
+            if [ "$FIREWALL" = "apf" ]; then
+                $APF -u "$ip"
+            elif [ "$FIREWALL" = "csf" ]; then
+                $CSF -dr "$ip"
+            elif [ "$FIREWALL" = "iptables" ]; then
+                $IPT -D INPUT -s "$ip" -j DROP
+            fi
+
+            log_msg "unbanned $ip"
+
+            # remove the ip from the bans list
+            grep -v "$ip" "${BANS_IP_LIST}" > "${BANS_IP_LIST}.tmp"
+            rm "${BANS_IP_LIST}"
+            mv "${BANS_IP_LIST}.tmp" "${BANS_IP_LIST}"
         fi
-
-        echo "echo \"\$(date +'[%Y-%m-%d %T]') unbanned $line\" >> /var/log/ddos.log" >> $UNBAN_SCRIPT
-        echo $line >> $UNBAN_IP_LIST
-    done < $BANNED_IP_LIST
-
-    echo "grep -v --file=$UNBAN_IP_LIST ${BANS_IP_LIST} > $TMP_FILE" >> $UNBAN_SCRIPT
-    echo "mv $TMP_FILE ${BANS_IP_LIST}" >> $UNBAN_SCRIPT
-    echo "rm -f $UNBAN_SCRIPT" >> $UNBAN_SCRIPT
-    echo "rm -f $UNBAN_IP_LIST" >> $UNBAN_SCRIPT
-    echo "rm -f $TMP_FILE" >> $UNBAN_SCRIPT
-
-    # Launch script in charge of unbanning after the given period of time
-    . $UNBAN_SCRIPT &
+    done < $BANS_IP_LIST
 }
 
 add_to_cron()
@@ -231,7 +226,9 @@ check_connections()
 
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
         echo $CURR_LINE_IP >> $BANNED_IP_LIST
-        echo $CURR_LINE_IP >> "${BANS_IP_LIST}"
+
+        current_time=`date +"%s"`
+        echo "$(($current_time+$BAN_PERIOD)) ${CURR_LINE_IP} ${CURR_LINE_CONN}" >> "${BANS_IP_LIST}"
 
         if [ "$FIREWALL" = "apf" ]; then
             $APF -d $CURR_LINE_IP
@@ -241,16 +238,16 @@ check_connections()
             $IPT -I INPUT -s $CURR_LINE_IP -j DROP
         fi
 
+        tcpkill host $CURR_LINE_IP > /dev/null 2>&1 &
+
         log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections for ban period $BAN_PERIOD"
     done < $BAD_IP_LIST
 
     if [ $IP_BAN_NOW -eq 1 ]; then
         if [ $EMAIL_TO != "" ]; then
             dt=`date`
-            cat $BANNED_IP_MAIL | mail -s "IP addresses banned on $dt" $EMAIL_TO
+            cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] IP addresses banned on $dt" $EMAIL_TO
         fi
-
-        unban_ip_list
 
         if [ $KILL -eq 1 ]; then
             echo "==========================================="
@@ -338,7 +335,9 @@ start_daemon()
 
     echo "starting ddos daemon..."
 
-    echo "" > "${BANS_IP_LIST}"
+    if [ ! -e "$BANS_IP_LIST" ]; then
+        echo "" > "${BANS_IP_LIST}"
+    fi
 
     nohup $0 -l > /dev/null 2>&1 &
 
@@ -382,8 +381,21 @@ daemon_loop()
 
     detect_firewall
 
+    # run unban_ip_list after 2 minutes of initialization
+    ban_check_timer=`date +"%s"`
+    ban_check_timer=$(($ban_check_timer+120))
+
     while true; do
         check_connections
+
+        # unban expired ip's every 1 minute
+        current_loop_time=`date +"%s"`
+        if [ $current_loop_time -gt $ban_check_timer ]; then
+            unban_ip_list
+            ban_check_timer=`date +"%s"`
+            ban_check_timer=$(($ban_check_timer+60))
+        fi
+
         sleep $DAEMON_FREQ
     done
 }
@@ -472,7 +484,7 @@ while [ $1 ]; do
             echo "List of currently banned ip's."
             echo "==================================="
             if [ -e "${BANS_IP_LIST}" ]; then
-                grep -v "#" "${BANS_IP_LIST}"
+                cut -d" " -f2 "${BANS_IP_LIST}"
             fi
             exit
             ;;

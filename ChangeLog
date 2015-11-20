@@ -6,6 +6,8 @@ ddos (0.8) stable; urgency=low
   * Added default settings to ddos script.
   * Added --bans-list|-b option to view currently banned ip's.
   * Added check for missing dependencies on installer script.
+  * Unban ip's on the daemon loop instead of creating new unban processes.
+  * Added hostname to email notification.
 
  -- Jefferson González <jgmdev@gmail.com>  Fri, 09 Jan 2015 17:27:01 +0200
 

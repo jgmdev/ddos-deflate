@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check for required dependencies
-for dependency in nslookup netstat iptables ifconfig awk sed grep; do
+for dependency in nslookup netstat iptables ifconfig tcpkill awk sed grep; do
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
         echo "error: Required dependency '$dependency' is missing.";
@@ -20,6 +20,10 @@ clear
 
 if [ ! -d "$DESTDIR/etc/ddos" ]; then
     mkdir -p "$DESTDIR/etc/ddos"
+fi
+
+if [ ! -d "$DESTDIR/var/lib/ddos" ]; then
+    mkdir -p "$DESTDIR/var/lib/ddos"
 fi
 
 echo; echo 'Installing DOS-Deflate 0.8'; echo
