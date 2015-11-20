@@ -490,7 +490,8 @@ while [ $1 ]; do
             echo "List of currently banned ip's."
             echo "==================================="
             if [ -e "${BANS_IP_LIST}" ]; then
-                cut -d" " -f2 "${BANS_IP_LIST}"
+                grep -v "" "${BANS_IP_LIST}" | \
+                    cut -d" " -f2
             fi
             exit
             ;;
