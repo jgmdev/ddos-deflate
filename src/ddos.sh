@@ -112,6 +112,10 @@ unban_ip_list()
     current_unban_time=`date +"%s"`
 
     while read line; do
+        if [ "$line" = "" ]; then
+            continue;
+        fi
+
         $time=`echo "$line" | cut -d" " -f1`
         $ip=`echo "$line" | cut -d" " -f2`
         $connections=`echo "$line" | cut -d" " -f3`
