@@ -27,28 +27,29 @@ test -x $DAEMON || exit 0
 set -e
 
 case "$1" in
-        start)
-            log_daemon_msg "Starting $DESC " "$INAME"
-            /usr/local/sbin/ddos --start >> /dev/null 2>&1
-            log_end_msg $?
+    start)
+        log_daemon_msg "Starting $DESC " "$INAME"
+        /usr/local/sbin/ddos --start >> /dev/null 2>&1
+        log_end_msg $?
         ;;
-        stop)
-            log_daemon_msg "Stopping $DESC " "$INAME"
-            /usr/local/sbin/ddos --stop
-            log_end_msg $?
-            ;;
-        status)
-            /usr/local/sbin/ddos --status
-                ;;
-        restart)
-            log_daemon_msg "Restarting $DESC " "$INAME"
-            /usr/local/sbin/ddos --stop
-            /usr/local/sbin/ddos --start
-            log_end_msg $?
-            ;;
-        *)
+    stop)
+        log_daemon_msg "Stopping $DESC " "$INAME"
+        /usr/local/sbin/ddos --stop >> /dev/null 2>&1
+        log_end_msg $?
+        ;;
+    status)
+        /usr/local/sbin/ddos --status
+        ;;
+    restart)
+        log_daemon_msg "Restarting $DESC " "$INAME"
+        log_end_msg $?
+        $0 stop
+        $0 start
+        ;;
+    *)
         echo "Usage: /etc/init.d/ddos {start|stop|restart|status}"
         exit 1
+        ;;
 esac
 
 exit 0
