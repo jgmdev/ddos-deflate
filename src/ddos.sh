@@ -234,8 +234,8 @@ check_connections()
         current_time=`date +"%s"`
         echo "$(($current_time+$BAN_PERIOD)) ${CURR_LINE_IP} ${CURR_LINE_CONN}" >> "${BANS_IP_LIST}"
 
-        # execute tcpkill for 10 seconds
-        timeout -k 10 -s 9 10 \
+        # execute tcpkill for 60 seconds
+        timeout -k 60 -s 9 60 \
             tcpkill -9 host $CURR_LINE_IP > /dev/null 2>&1 &
 
         if [ "$FIREWALL" = "apf" ]; then
