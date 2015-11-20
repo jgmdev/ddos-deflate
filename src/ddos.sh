@@ -113,7 +113,7 @@ unban_ip_list()
 
     while read line; do
         if [ "$line" = "" ]; then
-            continue;
+            continue
         fi
 
         $time=`echo "$line" | cut -d" " -f1`
