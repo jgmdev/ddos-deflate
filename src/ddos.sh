@@ -116,9 +116,9 @@ unban_ip_list()
             continue
         fi
 
-        $time=`echo "$line" | cut -d" " -f1`
-        $ip=`echo "$line" | cut -d" " -f2`
-        $connections=`echo "$line" | cut -d" " -f3`
+        time=`echo "$line" | cut -d" " -f1`
+        ip=`echo "$line" | cut -d" " -f2`
+        connections=`echo "$line" | cut -d" " -f3`
 
         if [ $current_unban_time -gt $time ]; then
             if [ "$FIREWALL" = "apf" ]; then
