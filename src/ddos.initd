@@ -22,27 +22,19 @@ LOGDIR=/var/log  # Log directory to use
 
 test -x $DAEMON || exit 0
 
-. /lib/lsb/init-functions
-
 set -e
 
 case "$1" in
     start)
-        log_daemon_msg "Starting $DESC " "$INAME"
-        /usr/local/sbin/ddos --start >> /dev/null 2>&1
-        log_end_msg $?
+        /usr/local/sbin/ddos --start
         ;;
     stop)
-        log_daemon_msg "Stopping $DESC " "$INAME"
-        /usr/local/sbin/ddos --stop >> /dev/null 2>&1
-        log_end_msg $?
+        /usr/local/sbin/ddos --stop
         ;;
     status)
         /usr/local/sbin/ddos --status
         ;;
     restart)
-        log_daemon_msg "Restarting $DESC " "$INAME"
-        log_end_msg $?
         $0 stop
         $0 start
         ;;
