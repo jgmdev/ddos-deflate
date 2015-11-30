@@ -342,7 +342,7 @@ start_daemon()
     echo "starting ddos daemon..."
 
     if [ ! -e "$BANS_IP_LIST" ]; then
-        echo "" > "${BANS_IP_LIST}"
+        touch "${BANS_IP_LIST}"
     fi
 
     nohup $0 -l > /dev/null 2>&1 &
@@ -490,8 +490,7 @@ while [ $1 ]; do
             echo "List of currently banned ip's."
             echo "==================================="
             if [ -e "${BANS_IP_LIST}" ]; then
-                grep -v "" "${BANS_IP_LIST}" | \
-                    cut -d" " -f2
+                cut -d" " -f2 "${BANS_IP_LIST}"
             fi
             exit
             ;;
