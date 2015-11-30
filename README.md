@@ -34,6 +34,7 @@ you use APF on your server in general, but deflate will work without it.)
 * Auto-detection of firewall.
 * Support for APF, CSF and iptables.
 * Logs events to /var/log/ddos.log
+* Uses tcpkill to reduce the amount of processes opened by attackers.
 
 ## Installation
 
