@@ -186,6 +186,8 @@ check_connections()
         uniq -c | \
         # Numerical sort in reverse order
         sort -nr | \
+        # Replace ::fff: String on ip
+        sed 's/::ffff://g' | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
         $BAD_IP_LIST
@@ -250,7 +252,7 @@ check_connections()
     done < $BAD_IP_LIST
 
     if [ $IP_BAN_NOW -eq 1 ]; then
-        if [ $EMAIL_TO != "" ]; then
+        if [ -n "$EMAIL_TO" ]; then
             dt=`date`
             cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] IP addresses banned on $dt" $EMAIL_TO
         fi
@@ -283,7 +285,9 @@ view_connections()
         # Group same occurrences of ip and prepend amount of occurences found
         uniq -c | \
         # Numerical sort in reverse order
-        sort -nr
+        sort -nr | \
+        # Replace ::fff: String on ip
+        sed 's/::ffff://g'
 }
 
 # Executed as a cleanup function when the daemon is stopped
