@@ -16,6 +16,7 @@ CONF_PATH="${CONF_PATH}/"
 
 # Other variables
 BANS_IP_LIST="/var/lib/ddos/bans.list"
+SERVER_IP_LIST=`ifconfig | awk -F "[: ]+" '/inet addr:/ { print $4 }' | xargs | sed -e 's/ /|/g'`
 
 load_conf()
 {
@@ -95,9 +96,9 @@ ignore_list()
     done
 
     # Get ip's of ethernet interfaces to prevent blocking it self.
-    for iface_ip in $(ifconfig | grep "inet " | awk '{print $2}' | sed "s/addr://g"); do
-        echo $iface_ip
-    done
+    #for iface_ip in $(ifconfig | grep "inet " | awk '{print $2}' | sed "s/addr://g"); do
+    #    echo $iface_ip
+    #done
 
     grep -v "#" "${CONF_PATH}${IGNORE_IP_LIST}"
 
@@ -180,6 +181,8 @@ check_connections()
         awk '{print $5}' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
+        # Ignore Server IP
+        sed -r "/($SERVER_IP_LIST)/Id" | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
@@ -280,6 +283,8 @@ view_connections()
         awk '{print $5}' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
+        # Ignore Server IP
+        sed -r "/($SERVER_IP_LIST)/Id" | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
