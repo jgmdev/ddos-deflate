@@ -1,13 +1,58 @@
 #!/bin/bash
 
 # Check for required dependencies
+if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
+    install_type='0'
+elif [ -f "$DESTDIR/usr/bin/yum" ]; then
+    install_type='1'
+else
+    install_type='2'
+fi
+
 for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed grep; do
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
-        echo "error: Required dependency '$dependency' is missing.";
-        exit 1
+        if [ ! "$install_type" = '2' ]; then
+            case $dependency in
+                "nslookup" )
+                    if [ "$install_type" = '0' ]; then
+                        apt-get install dnsutils;
+                    else
+                        yum install bind-utils;
+                    fi
+                ;;
+                "netstat" )
+                    if [ "$install_type" = '0' ]; then
+                        apt-get install net-tools;
+                    else
+                        yum install net-tools;
+                    fi
+                ;;
+                "iptables" )
+                    if [ "$install_type" = '0' ]; then
+                        apt-get install iptables-persistent;
+                    else
+                        yum install iptables-services;
+                    fi
+                ;;
+                "tcpkill" )
+                    if [ "$install_type" = '0' ]; then
+                        apt-get install dsniff;
+                    else
+                        yum install dsniff;
+                    fi
+                ;;
+                * )
+                    echo "error: Required dependency '$dependency' is missing.";
+                    exit 1
+            esac
+        else
+            echo "error: Required dependency '$dependency' is missing.";
+            exit 1
+        fi
     fi
 done
+
 
 if [ -d "$DESTDIR/usr/local/ddos" ]; then
     echo "Please un-install the previous version first"
