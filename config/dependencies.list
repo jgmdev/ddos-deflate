@@ -1,0 +1,9 @@
+/*dependencies      apt-get             yum*/
+nslookup            dnsutils            bind-utils
+netstat|ifconfig    net-tools           net-tools
+iptables            iptables-persistent iptables-services
+tcpkill             dsniff              dsniff
+timeout             coreutils           coreutils
+grep                grep                grep               
+awk                 awk                 awk
+sed                 sed                 sed
