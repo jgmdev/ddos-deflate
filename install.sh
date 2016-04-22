@@ -1,11 +1,28 @@
 #!/bin/bash
 
 # Check for required dependencies
+if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
+    install_type='2'
+elif [ -f "$DESTDIR/usr/bin/yum" ]; then
+    install_type='3'
+else
+    install_type='0'
+fi
+
 for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed grep; do
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
-        echo "error: Required dependency '$dependency' is missing.";
-        exit 1
+        echo "error: Required dependency '$dependency' is missing."
+        if [ "$install_type" = '0' ]; then
+            exit 1
+        else
+            echo -n "Autoinstall dependencies by '$(grep "/*dependencies" config/dependencies.list | awk '{print $'$install_type'}')'? (n to exit) "
+	fi
+        read install_sign
+        if [ "$install_sign" = 'N' -o "$install_sign" = 'n' ]; then
+           exit 1
+        fi
+	eval "$(grep "/*dependencies" config/dependencies.list | awk '{print $'$install_type'}') install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
     fi
 done
 
