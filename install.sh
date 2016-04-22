@@ -1,11 +1,78 @@
 #!/bin/bash
 
 # Check for required dependencies
+if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
+    install_type='0'
+elif [ -f "$DESTDIR/usr/bin/yum" ]; then
+    install_type='1'
+else
+    install_type='2'
+fi
+
 for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed grep; do
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
-        echo "error: Required dependency '$dependency' is missing.";
-        exit 1
+        echo "error: Required dependency '$dependency' is missing."
+        if [ "$install_type" = '2' ]; then
+            exit 1
+        else
+            echo -n "Autoinstall dependencies by '$install_type'? (n to exit) "
+	    fi
+
+        read install_sign
+        if [ "$install_sign" == 'N' -o "$install_sign" == 'n' ]; then
+           exit 1
+        fi
+
+        case $dependency in
+            "nslookup" )
+                if [ "$install_type" = '0' ]; then
+                    apt-get install dnsutils
+                else
+                    yum install bind-utils
+                fi
+                break
+            ;;
+            "netstat"|"ifconfig" )
+                if [ "$install_type" = '0' ]; then
+                    apt-get install net-tools
+                else
+                    yum install net-tools
+                fi
+                   break
+            ;;
+            "iptables" )
+                if [ "$install_type" = '0' ]; then
+                    apt-get install iptables-persistent
+                else
+                    yum install iptables-services
+                fi
+                break
+            ;;
+            "tcpkill" )
+                if [ "$install_type" = '0' ]; then
+                    apt-get install dsniff
+                else
+                    yum install dsniff
+                fi
+                break
+            ;;
+            "timeout" )
+                if [ "$install_type" = '0' ]; then
+                    apt-get install coreutils
+                fi
+                break
+            ;;
+            "grep" )
+                if [ "$install_type" = '0' ]; then
+                    apt-get install grep
+                fi
+                break
+            ;;
+            * )
+                echo "error: '$dependency' autoinstall failed"
+                exit 1
+            esac
     fi
 done
 
