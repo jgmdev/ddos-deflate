@@ -27,52 +27,68 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
         case $dependency in
             "nslookup" )
                 if [ "$install_type" = '0' ]; then
-                    apt-get install dnsutils
+                    apt-get install -y dnsutils
                 else
-                    yum install bind-utils
+                    yum install -y bind-utils
                 fi
                 break
             ;;
             "netstat"|"ifconfig" )
                 if [ "$install_type" = '0' ]; then
-                    apt-get install net-tools
+                    apt-get install -y net-tools
                 else
-                    yum install net-tools
+                    yum install -y net-tools
                 fi
                    break
             ;;
             "iptables" )
                 if [ "$install_type" = '0' ]; then
-                    apt-get install iptables-persistent
+                    apt-get install -y iptables-persistent
                 else
-                    yum install iptables-services
+                    yum install -y iptables-services
                 fi
                 break
             ;;
             "tcpkill" )
                 if [ "$install_type" = '0' ]; then
-                    apt-get install dsniff
+                    apt-get install -y dsniff
                 else
-                    yum install dsniff
+                    yum install -y dsniff
                 fi
                 break
             ;;
             "timeout" )
                 if [ "$install_type" = '0' ]; then
-                    apt-get install coreutils
+                    apt-get install -y coreutils
+                else
+                	yum install -y coreutils
                 fi
                 break
             ;;
             "grep" )
                 if [ "$install_type" = '0' ]; then
-                    apt-get install grep
+                    apt-get install -y grep
+                else
+                	yum install -y grep
                 fi
                 break
             ;;
-            * )
-                echo "error: '$dependency' autoinstall failed"
-                exit 1
-            esac
+            "awk" )
+            	if [ "$install_type" = '0' ]; then
+            		apt-get install -y gawk
+            	else
+            		yum install -y gawk
+            	fi
+            	break
+            ;;
+            "sed" )
+            	if [ "$install_type" = '0' ]; then
+            		apt-get install -y sed 
+            	else
+            		yum install -y sed
+            	fi
+            ;;
+        esac
     fi
 done
 
