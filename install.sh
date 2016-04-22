@@ -2,11 +2,11 @@
 
 # Check for required dependencies
 if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
-    install_type='0'
-elif [ -f "$DESTDIR/usr/bin/yum" ]; then
-    install_type='1'
-else
     install_type='2'
+elif [ -f "$DESTDIR/usr/bin/yum" ]; then
+    install_type='3'
+else
+    install_type='0'
 fi
 
 for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed grep; do
@@ -26,7 +26,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
 
         case $dependency in
             "nslookup" )
-                if [ "$install_type" = '0' ]; then
+                if [ "$install_type" = '2' ]; then
                     apt-get install -y dnsutils
                 else
                     yum install -y bind-utils
@@ -34,7 +34,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
                 break
             ;;
             "netstat"|"ifconfig" )
-                if [ "$install_type" = '0' ]; then
+                if [ "$install_type" = '2' ]; then
                     apt-get install -y net-tools
                 else
                     yum install -y net-tools
@@ -42,7 +42,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
                    break
             ;;
             "iptables" )
-                if [ "$install_type" = '0' ]; then
+                if [ "$install_type" = '2' ]; then
                     apt-get install -y iptables-persistent
                 else
                     yum install -y iptables-services
@@ -50,7 +50,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
                 break
             ;;
             "tcpkill" )
-                if [ "$install_type" = '0' ]; then
+                if [ "$install_type" = '2' ]; then
                     apt-get install -y dsniff
                 else
                     yum install -y dsniff
@@ -58,7 +58,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
                 break
             ;;
             "timeout" )
-                if [ "$install_type" = '0' ]; then
+                if [ "$install_type" = '2' ]; then
                     apt-get install -y coreutils
                 else
                 	yum install -y coreutils
@@ -66,7 +66,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
                 break
             ;;
             "grep" )
-                if [ "$install_type" = '0' ]; then
+                if [ "$install_type" = '2' ]; then
                     apt-get install -y grep
                 else
                 	yum install -y grep
@@ -74,7 +74,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
                 break
             ;;
             "awk" )
-            	if [ "$install_type" = '0' ]; then
+            	if [ "$install_type" = '2' ]; then
             		apt-get install -y gawk
             	else
             		yum install -y gawk
@@ -82,7 +82,7 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
             	break
             ;;
             "sed" )
-            	if [ "$install_type" = '0' ]; then
+            	if [ "$install_type" = '2' ]; then
             		apt-get install -y sed 
             	else
             		yum install -y sed
