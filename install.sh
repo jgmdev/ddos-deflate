@@ -13,82 +13,16 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
         echo "error: Required dependency '$dependency' is missing."
-        if [ "$install_type" = '2' ]; then
+        if [ "$install_type" = '0' ]; then
             exit 1
         else
-            echo -n "Autoinstall dependencies by '$install_type'? (n to exit) "
-	    fi
-
+            echo -n "Autoinstall dependencies by '$(grep "/*dependencies" config/dependencies.list | awk '{print $'$install_type'}')'? (n to exit) "
+	fi
         read install_sign
-        if [ "$install_sign" == 'N' -o "$install_sign" == 'n' ]; then
+        if [ "$install_sign" = 'N' -o "$install_sign" = 'n' ]; then
            exit 1
         fi
-
-        case $dependency in
-            "nslookup" )
-                if [ "$install_type" = '2' ]; then
-                    apt-get install -y dnsutils
-                else
-                    yum install -y bind-utils
-                fi
-                break
-            ;;
-            "netstat"|"ifconfig" )
-                if [ "$install_type" = '2' ]; then
-                    apt-get install -y net-tools
-                else
-                    yum install -y net-tools
-                fi
-                   break
-            ;;
-            "iptables" )
-                if [ "$install_type" = '2' ]; then
-                    apt-get install -y iptables-persistent
-                else
-                    yum install -y iptables-services
-                fi
-                break
-            ;;
-            "tcpkill" )
-                if [ "$install_type" = '2' ]; then
-                    apt-get install -y dsniff
-                else
-                    yum install -y dsniff
-                fi
-                break
-            ;;
-            "timeout" )
-                if [ "$install_type" = '2' ]; then
-                    apt-get install -y coreutils
-                else
-                	yum install -y coreutils
-                fi
-                break
-            ;;
-            "grep" )
-                if [ "$install_type" = '2' ]; then
-                    apt-get install -y grep
-                else
-                	yum install -y grep
-                fi
-                break
-            ;;
-            "awk" )
-            	if [ "$install_type" = '2' ]; then
-            		apt-get install -y gawk
-            	else
-            		yum install -y gawk
-            	fi
-            	break
-            ;;
-            "sed" )
-            	if [ "$install_type" = '2' ]; then
-            		apt-get install -y sed 
-            	else
-            		yum install -y sed
-            	fi
-            ;;
-        esac
+	eval "$(grep "/*dependencies" config/dependencies.list | awk '{print $'$install_type'}') install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
     fi
 done
 
