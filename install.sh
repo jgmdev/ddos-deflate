@@ -2,9 +2,9 @@
 
 # Check for required dependencies
 if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
-    install_type='2'
+    install_type='2';	install_command="apt-get"
 elif [ -f "$DESTDIR/usr/bin/yum" ]; then
-    install_type='3'
+    install_type='3';	install_command="yum"
 else
     install_type='0'
 fi
@@ -16,13 +16,13 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
         if [ "$install_type" = '0' ]; then
             exit 1
         else
-            echo -n "Autoinstall dependencies by '$(grep "/*dependencies" config/dependencies.list | awk '{print $'$install_type'}')'? (n to exit) "
+            echo -n "Autoinstall dependencies by '$install_command'? (n to exit) "
 	fi
         read install_sign
         if [ "$install_sign" = 'N' -o "$install_sign" = 'n' ]; then
            exit 1
         fi
-	eval "$(grep "/*dependencies" config/dependencies.list | awk '{print $'$install_type'}') install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
+	eval "$install_command install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
     fi
 done
 
