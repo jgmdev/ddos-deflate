@@ -47,6 +47,7 @@ showhelp()
     echo '-h | --help: Show this help screen'
     echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
     echo '-i | --ignore-list: List whitelisted ip addresses'
+    echo '-b | --bans-list: List currently banned ip addresses.'
     echo '-d | --start: Initialize a daemon to monitor connections'
     echo '-s | --stop: Stop the daemon'
     echo '-t | --status: Show status of daemon and pid if currently running'
