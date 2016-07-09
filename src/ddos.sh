@@ -47,6 +47,7 @@ showhelp()
     echo '-h | --help: Show this help screen'
     echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
     echo '-i | --ignore-list: List whitelisted ip addresses'
+    echo '-b | --bans-list: List currently banned ip addresses.'
     echo '-d | --start: Initialize a daemon to monitor connections'
     echo '-s | --stop: Stop the daemon'
     echo '-t | --status: Show status of daemon and pid if currently running'
@@ -159,18 +160,8 @@ add_to_cron()
     log_msg "added cron job"
 }
 
-# Check active connections and ban if neccessary.
-check_connections()
+ban_incoming_and_outgoing()
 {
-    su_required
-
-    TMP_PREFIX='/tmp/ddos'
-    TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
-    BAD_IP_LIST=`$TMP_FILE`
-
-    # Original command to get ip's
-    #netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr > $BAD_IP_LIST
-
     # Improved command
     netstat -ntu | \
         # Strip netstat heading
@@ -193,7 +184,84 @@ check_connections()
         sed 's/::ffff://g' | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
-        $BAD_IP_LIST
+        $1
+}
+
+ban_only_incoming()
+{
+  ALL_LISTENING=$(mktemp $TMP_PREFIX.XXXXXXXX)
+  ALL_CONNS=$(mktemp $TMP_PREFIX.XXXXXXXX)
+
+  # Find all connections
+  netstat -ntu | \
+    # Strip netstat heading
+    tail -n +3 | \
+    # Match only the given connection states
+    grep -E "$CONN_STATES" | \
+    # Extract both local and foreign address:port
+    awk '{print $4" "$5;}'> \
+    $ALL_CONNS
+
+  # Find all listening sockets
+  netstat -ntpl | \
+    # Strip netstat heading
+    tail -n +3  | \
+    # Only keep local address:port
+    awk '{print $4}' | \
+    # Also include specific server address when address is 0.0.0.0 (only ipv4)
+    awk  -v host_ip=$HOST_IP \
+         '{ ip_pos = index($0, "0.0.0.0");
+           if(ip_pos != 0) {
+               port_pos = index($0, ":");
+               print $0;
+               print host_ip substr($0, port_pos);
+           } else {
+               print $0;
+           }
+         }' > \
+     $ALL_LISTENING
+
+  # Only keep connections which are connected to local listening address:port but print foreign address:port
+  # ipv6 is always included
+  awk 'NR==FNR{a[$1];next} $1 in a {print $2}' $ALL_LISTENING $ALL_CONNS | \
+        # Strip port without affecting ipv6 addresses (experimental)
+        sed "s/:[0-9+]*$//g" | \
+        # Ignore Server IP
+        sed -r "/($SERVER_IP_LIST)/Id" | \
+        # Sort addresses for uniq to work correctly
+        sort | \
+        # Group same occurrences of ip and prepend amount of occurences found
+        uniq -c | \
+        # Numerical sort in reverse order
+        sort -nr | \
+        # Replace ::fff: String on ip
+        sed 's/::ffff://g' | \
+        # Only store connections that exceed max allowed
+        awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
+        $1
+
+  rm $ALL_LISTENING
+  rm $ALL_CONNS
+}
+
+
+# Check active connections and ban if neccessary.
+check_connections()
+{
+    su_required
+
+    TMP_PREFIX='/tmp/ddos'
+    TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
+    BAD_IP_LIST=`$TMP_FILE`
+
+    # Original command to get ip's
+    #netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr > $BAD_IP_LIST
+
+    if $ONLY_INCOMING; then
+        ban_only_incoming $BAD_IP_LIST
+    else
+        ban_incoming_and_outgoing $BAD_IP_LIST
+    fi
 
     FOUND=$(cat $BAD_IP_LIST)
 
@@ -473,6 +541,8 @@ FIREWALL="auto"
 EMAIL_TO="root"
 BAN_PERIOD=600
 CONN_STATES="ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING"
+ONLY_INCOMING=false
+HOST_IP="0.0.0.0"
 
 # Load custom settings
 load_conf
