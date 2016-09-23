@@ -1,0 +1,41 @@
+#!/bin/sh
+# PROVIDE: ddos
+# REQUIRE: DAEMON netif
+# KEYWORD: nojail
+
+. /etc/rc.subr
+
+name="ddos-deflate"
+rcvar="ddos_enable"
+start_cmd="ddos_start"
+stop_cmd="ddos_stop"
+reload_cmd="ddos_reload"
+extra_commands="reload"
+ddos_program="/usr/local/sbin/ddos"
+# ddos_file is set by rc.conf
+
+test -x $DAEMON || exit 0
+
+ddos_start()
+{
+    ${ddos_program} --start
+}
+
+ddos_stop()
+{
+    ${ddos_program} --stop
+}
+
+ddos_status()
+{
+    ${ddos_program} --status
+}
+
+ddos_restart()
+{
+    ${ddos_program} --stop
+    ${ddos_program} --start
+}
+
+load_rc_config $name
+run_rc_command "$1"

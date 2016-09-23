@@ -5,6 +5,8 @@ if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
     install_type='2';	install_command="apt-get"
 elif [ -f "$DESTDIR/usr/bin/yum" ]; then
     install_type='3';	install_command="yum"
+elif [ -f "$DESTDIR/usr/bin/pkg" ]; then
+    install_type='4';   install_command="pkg"
 else
     install_type='0'
 fi
@@ -95,6 +97,16 @@ fi
 
 echo;
 
+if [ -d /etc/newsyslog.conf.d ]; then
+    echo -n 'Adding newsyslog configuration...'
+    mkdir -p "$DESTDIR/etc/newsyslog.conf.d"
+    cp src/ddos.newsyslog "$DESTDIR/etc/newsyslog.conf.d/ddos" > /dev/null 2>&1
+    chmod 0644 "$DESTDIR/etc/newsyslog.conf.d/ddos"
+    echo " (done)"
+fi
+
+echo;
+
 if [ -d /etc/init.d ]; then
     echo -n 'Setting up init script...'
     mkdir -p "$DESTDIR/etc/init.d/"
@@ -112,6 +124,18 @@ if [ -d /etc/init.d ]; then
     else
         echo "ddos service needs to be manually started... (warning)"
     fi
+elif [ -d /etc/rc.d ]; then
+    echo -n 'Setting up rc script...'
+    mkdir -p "$DESTDIR/etc/rc.d/"
+    cp src/ddos.rcd "$DESTDIR/etc/rc.d/ddos" > /dev/null 2>&1
+    chmod 0755 "$DESTDIR/etc/rc.d/ddos" > /dev/null 2>&1
+    echo " (done)"
+
+    # Activate the service
+    echo -n "Activating ddos service..."
+    echo 'ddos_enable="YES"' >> /etc/rc.conf
+        service ddos start > /dev/null 2>&1
+        echo " (done)"
 elif [ -d /etc/cron.d ] && [ "$DESTDIR" = "" ]; then
     echo -n 'Creating cron to run script every minute...'
     mkdir -p "$DESTDIR/etc/cron.d/"
