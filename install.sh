@@ -2,16 +2,27 @@
 
 # Check for required dependencies
 if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
-    install_type='2';	install_command="apt-get"
+    install_type='2';
+    install_command="apt-get"
 elif [ -f "$DESTDIR/usr/bin/yum" ]; then
-    install_type='3';	install_command="yum"
-elif [ -f "$DESTDIR/usr/bin/pkg" ]; then
-    install_type='4';   install_command="pkg"
+    install_type='3';
+    install_command="yum"
+elif [ -f "$DESTDIR/usr/sbin/pkg" ]; then
+    install_type='4';
+    install_command="pkg"
 else
     install_type='0'
 fi
 
-for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed grep; do
+packages='nslookup netstat ifconfig tcpkill timeout awk sed grep'
+
+if  [ "$install_type" = '4' ]; then
+    packages="$packages ipfw"
+else
+    packages="$packages iptables"
+fi
+
+for dependency in $packages; do
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
         echo "error: Required dependency '$dependency' is missing."
@@ -19,12 +30,12 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
             exit 1
         else
             echo -n "Autoinstall dependencies by '$install_command'? (n to exit) "
-	fi
+        fi
         read install_sign
         if [ "$install_sign" = 'N' -o "$install_sign" = 'n' ]; then
            exit 1
         fi
-	eval "$install_command install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
+        eval "$install_command install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
     fi
 done
 
