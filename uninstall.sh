@@ -20,7 +20,7 @@ if [ -e '/etc/rc.d/ddos' ]; then
 	echo; echo -n "Deleting rc service..."
 	service ddos stop > /dev/null 2>&1
 	rm -f /etc/rc.d/ddos
-	sed '/ddos_enable/d' filename.txt
+	sed '/ddos_enable/d' /etc/rc.conf
 	echo -n ".."
 	echo " (done)"
 fi
