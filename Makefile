@@ -4,7 +4,7 @@ all:
 	@echo "Nothing to compile. Use 'make install' to install (D)Dos Deflate."
 
 install:
-	./install.sh
+	bash install.sh
 
 uninstall:
-	./uninstall.sh
+	bash uninstall.sh
