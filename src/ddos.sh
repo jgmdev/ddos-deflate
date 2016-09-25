@@ -127,6 +127,8 @@ unban_ip_list()
                 $APF -u "$ip"
             elif [ "$FIREWALL" = "csf" ]; then
                 $CSF -dr "$ip"
+            elif [ "$FIREWALL" = "ipfw" ]; then
+                $IPF -q delete 65000
             elif [ "$FIREWALL" = "iptables" ]; then
                 $IPT -D INPUT -s "$ip" -j DROP
             fi
@@ -315,6 +317,8 @@ check_connections()
             $APF -d $CURR_LINE_IP
         elif [ "$FIREWALL" = "csf" ]; then
             $CSF -d $CURR_LINE_IP
+        elif [ "$FIREWALL" = "ipfw" ]; then
+            $IPF -q add 65000 deny all from $CURR_LINE_IP to any
         elif [ "$FIREWALL" = "iptables" ]; then
             $IPT -I INPUT -s $CURR_LINE_IP -j DROP
         fi
@@ -499,12 +503,15 @@ detect_firewall()
     if [ "$FIREWALL" = "auto" ] || [ "$FIREWALL" = "" ]; then
         apf_where=`whereis apf`;
         csf_where=`whereis csf`;
+        ipf_where=`whereis ipfw`;
         ipt_where=`whereis iptables`;
 
         if [ -e "$APF" ]; then
             FIREWALL="apf"
         elif [ -e "$CSF" ]; then
             FIREWALL="csf"
+        elif [ -e "$IPF" ]; then
+            FIREWALL="ipfw"
         elif [ -e "$IPT" ]; then
             FIREWALL="iptables"
         elif [ "$apf_where" != "apf:" ]; then
@@ -513,6 +520,9 @@ detect_firewall()
         elif [ "$csf_where" != "csf:" ]; then
             FIREWALL="csf"
             CSF="csf"
+        elif [ "$ipf_where" != "ipfw:" ]; then
+            FIREWALL="ipfw"
+            IPF="ipfw"
         elif [ "$ipt_where" != "iptables:" ]; then
             FIREWALL="iptables"
             IPT="iptables"
@@ -533,6 +543,7 @@ IGNORE_HOST_LIST="ignore.host.list"
 CRON="/etc/cron.d/ddos"
 APF="/usr/sbin/apf"
 CSF="/usr/sbin/csf"
+IPF="/sbin/ipfw"
 IPT="/sbin/iptables"
 FREQ=1
 DAEMON_FREQ=5
