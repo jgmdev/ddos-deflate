@@ -87,7 +87,7 @@ echo " (done)"
 
 echo -n 'Creating ddos script: /usr/local/sbin/ddos...'
 mkdir -p "$DESTDIR/usr/local/sbin/"
-echo "#!/bin/bash" > "$DESTDIR/usr/local/sbin/ddos"
+echo "#!/bin/sh" > "$DESTDIR/usr/local/sbin/ddos"
 echo "/usr/local/ddos/ddos.sh \$@" >> "$DESTDIR/usr/local/sbin/ddos"
 chmod 0755 "$DESTDIR/usr/local/sbin/ddos"
 echo " (done)"
