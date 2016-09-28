@@ -148,27 +148,40 @@ add_to_cron()
 {
     su_required
 
-    rm -f $CRON
     if [ $FREQ -le 2 ]; then
-        echo "0-59/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1" > $CRON
+        cron_task="0-59/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1"
+
+        if [ "$FIREWALL" = "ipfw" ]; then
+            cron_file=/etc/crontab
+            sed -i '' '/ddos/d' $cron_file
+            echo $cron_task >> $cron_file
+        else
+            rm -f $CRON
+            echo $cron_task > $CRON
+            chmod 644 $CRON
+        fi
     else
         let "START_MINUTE = $RANDOM % ($FREQ - 1)"
         let "START_MINUTE = $START_MINUTE + 1"
         let "END_MINUTE = 60 - $FREQ + $START_MINUTE"
-        echo "$START_MINUTE-$END_MINUTE/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1" > $CRON
-    fi
 
-    chmod 644 $CRON
+        cron_task="$START_MINUTE-$END_MINUTE/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1"
+
+        if [ "$FIREWALL" = "ipfw" ]; then
+            echo $cron_task >> /etc/crontab
+        else
+            echo $cron_task > $CRON
+            chmod 644 $CRON
+        fi
+    fi
 
     log_msg "added cron job"
 }
 
 ban_incoming_and_outgoing()
 {
-    # Improved command
-    netstat -ntu | \
-        # Strip netstat heading
-        tail -n +3 | \
+    # Strip netstat heading
+    netstat | tail -n +3 | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column

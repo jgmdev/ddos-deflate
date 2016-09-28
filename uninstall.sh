@@ -20,7 +20,7 @@ if [ -e '/etc/rc.d/ddos' ]; then
 	echo; echo -n "Deleting rc service..."
 	service ddos stop > /dev/null 2>&1
 	rm -f /etc/rc.d/ddos
-	sed '/ddos_enable/d' /etc/rc.conf
+	sed -i '' '/ddos_enable/d' /etc/rc.conf
 	echo -n ".."
 	echo " (done)"
 fi
@@ -64,9 +64,13 @@ if [ -e '/etc/cron.d/ddos' ]; then
 	echo -n "Deleting cron job..."
 	rm -f /etc/cron.d/ddos
 	echo -n ".."
-	echo " (done)"
 fi
-
+if [ -e '/etc/crontab' ]; then
+        echo -n "Deleting cron job..."
+        sed -i '' '/ddos/d' /etc/crontab
+        echo -n ".."
+fi
+echo " (done)"
 if [ -e '/etc/newsyslog.d/ddos' ]; then
 	echo -n "Deleting newsyslog job..."
 	rm -f /etc/newsyslog.d/ddos

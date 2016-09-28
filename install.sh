@@ -147,9 +147,8 @@ elif [ -d /etc/rc.d ]; then
     echo 'ddos_enable="YES"' >> /etc/rc.conf
         service ddos start > /dev/null 2>&1
         echo " (done)"
-elif [ -d /etc/cron.d ] && [ "$DESTDIR" = "" ]; then
+elif [ -d /etc/cron.d ] || [ -f /etc/crontab ]; then
     echo -n 'Creating cron to run script every minute...'
-    mkdir -p "$DESTDIR/etc/cron.d/"
     /usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
     echo " (done)"
 elif [ -d /usr/lib/systemd/system ]; then
