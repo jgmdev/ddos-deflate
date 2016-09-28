@@ -128,7 +128,8 @@ unban_ip_list()
             elif [ "$FIREWALL" = "csf" ]; then
                 $CSF -dr "$ip"
             elif [ "$FIREWALL" = "ipfw" ]; then
-                $IPF -q delete 65000
+                rule_number=`$IPF list | awk "/$ip/{print $1}"`
+                $IPF -q delete $rule_number
             elif [ "$FIREWALL" = "iptables" ]; then
                 $IPT -D INPUT -s "$ip" -j DROP
             fi
@@ -318,7 +319,9 @@ check_connections()
         elif [ "$FIREWALL" = "csf" ]; then
             $CSF -d $CURR_LINE_IP
         elif [ "$FIREWALL" = "ipfw" ]; then
-            $IPF -q add 65000 deny all from $CURR_LINE_IP to any
+            rule_number=`ipfw list | tail -1 | awk '/deny/{print $1}'`
+            next_number=$((rule_number + 1))
+            $IPF -q add $next_number deny all from $CURR_LINE_IP to any
         elif [ "$FIREWALL" = "iptables" ]; then
             $IPT -I INPUT -s $CURR_LINE_IP -j DROP
         fi
