@@ -22,7 +22,7 @@ load_conf()
 {
     CONF="${CONF_PATH}ddos.conf"
     if [ -f "$CONF" ] && [ ! "$CONF" == "" ]; then
-        source $CONF
+        . $CONF
     else
         head
         echo "\$CONF not found."
