@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Check for required dependencies
 if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
