@@ -6,6 +6,8 @@ fixes, improvements and new features.
 
 **Maintainer:** Jefferson González <jgmdev@gmail.com>
 
+**Contributor (BSD support):** Marc S. Brooks <devel@mbrooks.info>
+
 ## About
 
 (D)DoS Deflate is a lightweight bash shell script designed to assist in
@@ -14,7 +16,7 @@ command below to create a list of IP addresses connected to the server,
 along with their total number of connections. It is one of the simplest
 and easiest to install solutions at the software level.
 
-netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
+netstat -an | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
 
 IP addresses with over a pre-configured number of connections are
 automatically blocked in the server's firewall, which can be direct
