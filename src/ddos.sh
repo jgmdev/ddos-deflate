@@ -3,7 +3,7 @@
 # DDoS-Deflate version 0.8 Author: Zaf <zaf@vsnl.com>                        #
 ##############################################################################
 # Contributors:                                                              #
-# Jefferson González <jgmdev@gmail.com>                                      #
+# Jefferson González <jgmdev@gmail.com>                               #
 ##############################################################################
 # This program is distributed under the "Artistic License" Agreement         #
 #                                                                            #
@@ -180,14 +180,16 @@ add_to_cron()
 
 ban_incoming_and_outgoing()
 {
-    # Strip netstat heading
-    netstat | tail -n +3 | \
+    # Find all connections
+    netstat -an | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column
         awk '{print $5}' | \
+        # Strip port without affecting ipv4 addresses
+        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
-        sed "s/:[0-9+]*$//g" | \
+        sed 's/:[0-9+]*$//g' | \
         # Ignore Server IP
         sed -r "/($SERVER_IP_LIST)/Id" | \
         # Sort addresses for uniq to work correctly
@@ -205,41 +207,39 @@ ban_incoming_and_outgoing()
 
 ban_only_incoming()
 {
-  ALL_LISTENING=$(mktemp $TMP_PREFIX.XXXXXXXX)
-  ALL_CONNS=$(mktemp $TMP_PREFIX.XXXXXXXX)
+    ALL_LISTENING=$(mktemp $TMP_PREFIX.XXXXXXXX)
+    ALL_CONNS=$(mktemp $TMP_PREFIX.XXXXXXXX)
 
-  # Find all connections
-  netstat -ntu | \
-    # Strip netstat heading
-    tail -n +3 | \
-    # Match only the given connection states
-    grep -E "$CONN_STATES" | \
-    # Extract both local and foreign address:port
-    awk '{print $4" "$5;}'> \
-    $ALL_CONNS
+    # Find all connections
+    netstat -an | \
+        # Match only the given connection states
+        grep -E "$CONN_STATES" | \
+        # Extract both local and foreign address:port
+        awk '{print $4" "$5;}'> \
+        $ALL_CONNS
 
-  # Find all listening sockets
-  netstat -ntpl | \
-    # Strip netstat heading
-    tail -n +3  | \
-    # Only keep local address:port
-    awk '{print $4}' | \
-    # Also include specific server address when address is 0.0.0.0 (only ipv4)
-    awk  -v host_ip=$HOST_IP \
-         '{ ip_pos = index($0, "0.0.0.0");
-           if(ip_pos != 0) {
-               port_pos = index($0, ":");
-               print $0;
-               print host_ip substr($0, port_pos);
-           } else {
-               print $0;
-           }
-         }' > \
-     $ALL_LISTENING
+    # Find all connections
+    netstat -an | \
+        # Only keep local address:port
+        awk '{print $4}' | \
+        # Also include specific server address when address is 0.0.0.0 (only ipv4)
+        awk -v host_ip=$HOST_IP \
+        '{ ip_pos = index($0, "0.0.0.0");
+            if (ip_pos != 0) {
+                port_pos = index($0, ":");
+                print $0;
+                print host_ip substr($0, port_pos);
+            } else {
+                print $0;
+            }
+        }' > \
+        $ALL_LISTENING
 
-  # Only keep connections which are connected to local listening address:port but print foreign address:port
-  # ipv6 is always included
-  awk 'NR==FNR{a[$1];next} $1 in a {print $2}' $ALL_LISTENING $ALL_CONNS | \
+    # Only keep connections which are connected to local listening address:port but print foreign address:port
+    # ipv6 is always included
+    awk 'NR==FNR{a[$1];next} $1 in a {print $2}' $ALL_LISTENING $ALL_CONNS | \
+        # Strip port without affecting ipv4 addresses
+        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
         # Ignore Server IP
@@ -256,10 +256,9 @@ ban_only_incoming()
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
         $1
 
-  rm $ALL_LISTENING
-  rm $ALL_CONNS
+    rm $ALL_LISTENING
+    rm $ALL_CONNS
 }
-
 
 # Check active connections and ban if neccessary.
 check_connections()
@@ -362,13 +361,14 @@ check_connections()
 # Active connections to server.
 view_connections()
 {
-    netstat -ntu | \
-        # Strip netstat heading
-        tail -n +3 | \
+    # Find all connections
+    netstat -an | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column
         awk '{print $5}' | \
+        # Strip port without affecting ipv4 addresses
+        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
         # Ignore Server IP
