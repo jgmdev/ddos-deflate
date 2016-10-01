@@ -19,8 +19,8 @@ and easiest to install solutions at the software level.
 netstat -an | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
 
 IP addresses with over a pre-configured number of connections are
-automatically blocked in the server's firewall, which can be direct
-iptables or Advanced Policy Firewall (APF). (We highly recommend that
+automatically blocked in the server's firewall, which can be direct 
+ipfw, iptables, or Advanced Policy Firewall (APF). (We highly recommend that
 you use APF on your server in general, but deflate will work without it.)
 
 ### Notable Features
@@ -34,7 +34,7 @@ you use APF on your server in general, but deflate will work without it.)
 * You can receive email alerts when IP addresses are blocked.
 * Control blocking by connection state (see man netstat).
 * Auto-detection of firewall.
-* Support for APF, CSF and iptables.
+* Support for APF, CSF, ipfw, and iptables.
 * Logs events to /var/log/ddos.log
 * Uses tcpkill to reduce the amount of processes opened by attackers.
 
