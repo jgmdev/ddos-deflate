@@ -344,7 +344,8 @@ check_connections()
     if [ $IP_BAN_NOW -eq 1 ]; then
         if [ -n "$EMAIL_TO" ]; then
             dt=`date`
-            cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] IP addresses banned on $dt" $EMAIL_TO
+            hn=`hostname`
+            cat $BANNED_IP_MAIL | mail -s "[$hn] IP addresses banned on $dt" $EMAIL_TO
         fi
 
         if [ $KILL -eq 1 ]; then
