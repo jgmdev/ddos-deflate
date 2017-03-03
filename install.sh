@@ -2,9 +2,9 @@
 
 # Check for required dependencies
 if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
-    install_type='2';	install_command="apt-get"
+    install_type='2';   install_command="apt-get"
 elif [ -f "$DESTDIR/usr/bin/yum" ]; then
-    install_type='3';	install_command="yum"
+    install_type='3';   install_command="yum"
 else
     install_type='0'
 fi
@@ -17,12 +17,12 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
             exit 1
         else
             echo -n "Autoinstall dependencies by '$install_command'? (n to exit) "
-	fi
+    fi
         read install_sign
         if [ "$install_sign" = 'N' -o "$install_sign" = 'n' ]; then
            exit 1
         fi
-	eval "$install_command install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
+    eval "$install_command install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
     fi
 done
 
@@ -112,11 +112,6 @@ if [ -d /etc/init.d ]; then
     else
         echo "ddos service needs to be manually started... (warning)"
     fi
-elif [ -d /etc/cron.d ] && [ "$DESTDIR" = "" ]; then
-    echo -n 'Creating cron to run script every minute...'
-    mkdir -p "$DESTDIR/etc/cron.d/"
-    /usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
-    echo " (done)"
 elif [ -d /usr/lib/systemd/system ]; then
     echo -n 'Setting up systemd service...'
     mkdir -p "$DESTDIR/usr/lib/systemd/system/"
@@ -134,6 +129,11 @@ elif [ -d /usr/lib/systemd/system ]; then
     else
         echo "ddos service needs to be manually started... (warning)"
     fi
+elif [ -d /etc/cron.d ] && [ "$DESTDIR" = "" ]; then
+    echo -n 'Creating cron to run script every minute...'
+    mkdir -p "$DESTDIR/etc/cron.d/"
+    /usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
+    echo " (done)"
 fi
 
 echo; echo 'Installation has completed!'
