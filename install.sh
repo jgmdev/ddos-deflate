@@ -147,10 +147,6 @@ elif [ -d /etc/rc.d ]; then
     echo 'ddos_enable="YES"' >> /etc/rc.conf
         service ddos start > /dev/null 2>&1
         echo " (done)"
-elif [ -d /etc/cron.d ] || [ -f /etc/crontab ]; then
-    echo -n 'Creating cron to run script every minute...'
-    /usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
-    echo " (done)"
 elif [ -d /usr/lib/systemd/system ]; then
     echo -n 'Setting up systemd service...'
     mkdir -p "$DESTDIR/usr/lib/systemd/system/"
@@ -168,6 +164,10 @@ elif [ -d /usr/lib/systemd/system ]; then
     else
         echo "ddos service needs to be manually started... (warning)"
     fi
+elif [ -d /etc/cron.d ] || [ -f /etc/crontab ]; then
+    echo -n 'Creating cron to run script every minute...'
+    /usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
+    echo " (done)"
 fi
 
 echo; echo 'Installation has completed!'
