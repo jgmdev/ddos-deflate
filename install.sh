@@ -1,15 +1,28 @@
-#!/bin/bash
+#!/bin/sh
 
 # Check for required dependencies
 if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
-    install_type='2';   install_command="apt-get"
+    install_type='2';
+    install_command="apt-get"
 elif [ -f "$DESTDIR/usr/bin/yum" ]; then
-    install_type='3';   install_command="yum"
+    install_type='3';
+    install_command="yum"
+elif [ -f "$DESTDIR/usr/sbin/pkg" ]; then
+    install_type='4';
+    install_command="pkg"
 else
     install_type='0'
 fi
 
-for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed grep; do
+packages='nslookup netstat ifconfig tcpkill timeout awk sed grep'
+
+if  [ "$install_type" = '4' ]; then
+    packages="$packages ipfw"
+else
+    packages="$packages iptables"
+fi
+
+for dependency in $packages; do
     is_installed=`which $dependency`
     if [ "$is_installed" = "" ]; then
         echo "error: Required dependency '$dependency' is missing."
@@ -17,12 +30,12 @@ for dependency in nslookup netstat iptables ifconfig tcpkill timeout awk sed gre
             exit 1
         else
             echo -n "Autoinstall dependencies by '$install_command'? (n to exit) "
-    fi
+        fi
         read install_sign
         if [ "$install_sign" = 'N' -o "$install_sign" = 'n' ]; then
            exit 1
         fi
-    eval "$install_command install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
+        eval "$install_command install -y $(grep $dependency config/dependencies.list | awk '{print $'$install_type'}')"
     fi
 done
 
@@ -74,7 +87,7 @@ echo " (done)"
 
 echo -n 'Creating ddos script: /usr/local/sbin/ddos...'
 mkdir -p "$DESTDIR/usr/local/sbin/"
-echo "#!/bin/bash" > "$DESTDIR/usr/local/sbin/ddos"
+echo "#!/bin/sh" > "$DESTDIR/usr/local/sbin/ddos"
 echo "/usr/local/ddos/ddos.sh \$@" >> "$DESTDIR/usr/local/sbin/ddos"
 chmod 0755 "$DESTDIR/usr/local/sbin/ddos"
 echo " (done)"
@@ -90,6 +103,16 @@ if [ -d /etc/logrotate.d ]; then
     mkdir -p "$DESTDIR/etc/logrotate.d/"
     cp src/ddos.logrotate "$DESTDIR/etc/logrotate.d/ddos" > /dev/null 2>&1
     chmod 0644 "$DESTDIR/etc/logrotate.d/ddos"
+    echo " (done)"
+fi
+
+echo;
+
+if [ -d /etc/newsyslog.conf.d ]; then
+    echo -n 'Adding newsyslog configuration...'
+    mkdir -p "$DESTDIR/etc/newsyslog.conf.d"
+    cp src/ddos.newsyslog "$DESTDIR/etc/newsyslog.conf.d/ddos" > /dev/null 2>&1
+    chmod 0644 "$DESTDIR/etc/newsyslog.conf.d/ddos"
     echo " (done)"
 fi
 
@@ -112,6 +135,18 @@ if [ -d /etc/init.d ]; then
     else
         echo "ddos service needs to be manually started... (warning)"
     fi
+elif [ -d /etc/rc.d ]; then
+    echo -n 'Setting up rc script...'
+    mkdir -p "$DESTDIR/etc/rc.d/"
+    cp src/ddos.rcd "$DESTDIR/etc/rc.d/ddos" > /dev/null 2>&1
+    chmod 0755 "$DESTDIR/etc/rc.d/ddos" > /dev/null 2>&1
+    echo " (done)"
+
+    # Activate the service
+    echo -n "Activating ddos service..."
+    echo 'ddos_enable="YES"' >> /etc/rc.conf
+        service ddos start > /dev/null 2>&1
+        echo " (done)"
 elif [ -d /usr/lib/systemd/system ]; then
     echo -n 'Setting up systemd service...'
     mkdir -p "$DESTDIR/usr/lib/systemd/system/"
@@ -129,9 +164,8 @@ elif [ -d /usr/lib/systemd/system ]; then
     else
         echo "ddos service needs to be manually started... (warning)"
     fi
-elif [ -d /etc/cron.d ] && [ "$DESTDIR" = "" ]; then
+elif [ -d /etc/cron.d ] || [ -f /etc/crontab ]; then
     echo -n 'Creating cron to run script every minute...'
-    mkdir -p "$DESTDIR/etc/cron.d/"
     /usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
     echo " (done)"
 fi

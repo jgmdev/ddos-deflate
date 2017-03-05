@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 ##############################################################################
 # DDoS-Deflate version 0.8 Author: Zaf <zaf@vsnl.com>                        #
 ##############################################################################
 # Contributors:                                                              #
-# Jefferson González <jgmdev@gmail.com>                                      #
+# Jefferson González <jgmdev@gmail.com>                               #
 ##############################################################################
 # This program is distributed under the "Artistic License" Agreement         #
 #                                                                            #
@@ -22,7 +22,7 @@ load_conf()
 {
     CONF="${CONF_PATH}ddos.conf"
     if [ -f "$CONF" ] && [ ! "$CONF" == "" ]; then
-        source $CONF
+        . $CONF
     else
         head
         echo "\$CONF not found."
@@ -127,6 +127,9 @@ unban_ip_list()
                 $APF -u "$ip"
             elif [ "$FIREWALL" = "csf" ]; then
                 $CSF -dr "$ip"
+            elif [ "$FIREWALL" = "ipfw" ]; then
+                rule_number=`$IPF list | awk "/$ip/{print $1}"`
+                $IPF -q delete $rule_number
             elif [ "$FIREWALL" = "iptables" ]; then
                 $IPT -D INPUT -s "$ip" -j DROP
             fi
@@ -145,33 +148,48 @@ add_to_cron()
 {
     su_required
 
-    rm -f $CRON
     if [ $FREQ -le 2 ]; then
-        echo "0-59/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1" > $CRON
+        cron_task="0-59/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1"
+
+        if [ "$FIREWALL" = "ipfw" ]; then
+            cron_file=/etc/crontab
+            sed -i '' '/ddos/d' $cron_file
+            echo $cron_task >> $cron_file
+        else
+            rm -f $CRON
+            echo $cron_task > $CRON
+            chmod 644 $CRON
+        fi
     else
         let "START_MINUTE = $RANDOM % ($FREQ - 1)"
         let "START_MINUTE = $START_MINUTE + 1"
         let "END_MINUTE = 60 - $FREQ + $START_MINUTE"
-        echo "$START_MINUTE-$END_MINUTE/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1" > $CRON
-    fi
 
-    chmod 644 $CRON
+        cron_task="$START_MINUTE-$END_MINUTE/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1"
+
+        if [ "$FIREWALL" = "ipfw" ]; then
+            echo $cron_task >> /etc/crontab
+        else
+            echo $cron_task > $CRON
+            chmod 644 $CRON
+        fi
+    fi
 
     log_msg "added cron job"
 }
 
 ban_incoming_and_outgoing()
 {
-    # Improved command
-    netstat -ntu | \
-        # Strip netstat heading
-        tail -n +3 | \
+    # Find all connections
+    netstat -an | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column
         awk '{print $5}' | \
+        # Strip port without affecting ipv4 addresses
+        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
-        sed "s/:[0-9+]*$//g" | \
+        sed 's/:[0-9+]*$//g' | \
         # Ignore Server IP
         sed -r "/($SERVER_IP_LIST)/Id" | \
         # Sort addresses for uniq to work correctly
@@ -189,41 +207,39 @@ ban_incoming_and_outgoing()
 
 ban_only_incoming()
 {
-  ALL_LISTENING=$(mktemp $TMP_PREFIX.XXXXXXXX)
-  ALL_CONNS=$(mktemp $TMP_PREFIX.XXXXXXXX)
+    ALL_LISTENING=$(mktemp $TMP_PREFIX.XXXXXXXX)
+    ALL_CONNS=$(mktemp $TMP_PREFIX.XXXXXXXX)
 
-  # Find all connections
-  netstat -ntu | \
-    # Strip netstat heading
-    tail -n +3 | \
-    # Match only the given connection states
-    grep -E "$CONN_STATES" | \
-    # Extract both local and foreign address:port
-    awk '{print $4" "$5;}'> \
-    $ALL_CONNS
+    # Find all connections
+    netstat -an | \
+        # Match only the given connection states
+        grep -E "$CONN_STATES" | \
+        # Extract both local and foreign address:port
+        awk '{print $4" "$5;}'> \
+        $ALL_CONNS
 
-  # Find all listening sockets
-  netstat -ntpl | \
-    # Strip netstat heading
-    tail -n +3  | \
-    # Only keep local address:port
-    awk '{print $4}' | \
-    # Also include specific server address when address is 0.0.0.0 (only ipv4)
-    awk  -v host_ip=$HOST_IP \
-         '{ ip_pos = index($0, "0.0.0.0");
-           if(ip_pos != 0) {
-               port_pos = index($0, ":");
-               print $0;
-               print host_ip substr($0, port_pos);
-           } else {
-               print $0;
-           }
-         }' > \
-     $ALL_LISTENING
+    # Find all connections
+    netstat -an | \
+        # Only keep local address:port
+        awk '{print $4}' | \
+        # Also include specific server address when address is 0.0.0.0 (only ipv4)
+        awk -v host_ip=$HOST_IP \
+        '{ ip_pos = index($0, "0.0.0.0");
+            if (ip_pos != 0) {
+                port_pos = index($0, ":");
+                print $0;
+                print host_ip substr($0, port_pos);
+            } else {
+                print $0;
+            }
+        }' > \
+        $ALL_LISTENING
 
-  # Only keep connections which are connected to local listening address:port but print foreign address:port
-  # ipv6 is always included
-  awk 'NR==FNR{a[$1];next} $1 in a {print $2}' $ALL_LISTENING $ALL_CONNS | \
+    # Only keep connections which are connected to local listening address:port but print foreign address:port
+    # ipv6 is always included
+    awk 'NR==FNR{a[$1];next} $1 in a {print $2}' $ALL_LISTENING $ALL_CONNS | \
+        # Strip port without affecting ipv4 addresses
+        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
         # Ignore Server IP
@@ -240,10 +256,9 @@ ban_only_incoming()
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
         $1
 
-  rm $ALL_LISTENING
-  rm $ALL_CONNS
+    rm $ALL_LISTENING
+    rm $ALL_CONNS
 }
-
 
 # Check active connections and ban if neccessary.
 check_connections()
@@ -315,6 +330,10 @@ check_connections()
             $APF -d $CURR_LINE_IP
         elif [ "$FIREWALL" = "csf" ]; then
             $CSF -d $CURR_LINE_IP
+        elif [ "$FIREWALL" = "ipfw" ]; then
+            rule_number=`ipfw list | tail -1 | awk '/deny/{print $1}'`
+            next_number=$((rule_number + 1))
+            $IPF -q add $next_number deny all from $CURR_LINE_IP to any
         elif [ "$FIREWALL" = "iptables" ]; then
             $IPT -I INPUT -s $CURR_LINE_IP -j DROP
         fi
@@ -325,7 +344,8 @@ check_connections()
     if [ $IP_BAN_NOW -eq 1 ]; then
         if [ -n "$EMAIL_TO" ]; then
             dt=`date`
-            cat $BANNED_IP_MAIL | mail -s "[$HOSTNAME] IP addresses banned on $dt" $EMAIL_TO
+            hn=`hostname`
+            cat $BANNED_IP_MAIL | mail -s "[$hn] IP addresses banned on $dt" $EMAIL_TO
         fi
 
         if [ $KILL -eq 1 ]; then
@@ -342,13 +362,14 @@ check_connections()
 # Active connections to server.
 view_connections()
 {
-    netstat -ntu | \
-        # Strip netstat heading
-        tail -n +3 | \
+    # Find all connections
+    netstat -an | \
         # Match only the given connection states
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column
         awk '{print $5}' | \
+        # Strip port without affecting ipv4 addresses
+        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
         # Ignore Server IP
@@ -499,12 +520,15 @@ detect_firewall()
     if [ "$FIREWALL" = "auto" ] || [ "$FIREWALL" = "" ]; then
         apf_where=`whereis apf`;
         csf_where=`whereis csf`;
+        ipf_where=`whereis ipfw`;
         ipt_where=`whereis iptables`;
 
         if [ -e "$APF" ]; then
             FIREWALL="apf"
         elif [ -e "$CSF" ]; then
             FIREWALL="csf"
+        elif [ -e "$IPF" ]; then
+            FIREWALL="ipfw"
         elif [ -e "$IPT" ]; then
             FIREWALL="iptables"
         elif [ "$apf_where" != "apf:" ]; then
@@ -513,6 +537,9 @@ detect_firewall()
         elif [ "$csf_where" != "csf:" ]; then
             FIREWALL="csf"
             CSF="csf"
+        elif [ "$ipf_where" != "ipfw:" ]; then
+            FIREWALL="ipfw"
+            IPF="ipfw"
         elif [ "$ipt_where" != "iptables:" ]; then
             FIREWALL="iptables"
             IPT="iptables"
@@ -533,6 +560,7 @@ IGNORE_HOST_LIST="ignore.host.list"
 CRON="/etc/cron.d/ddos"
 APF="/usr/sbin/apf"
 CSF="/usr/sbin/csf"
+IPF="/sbin/ipfw"
 IPT="/sbin/iptables"
 FREQ=1
 DAEMON_FREQ=5

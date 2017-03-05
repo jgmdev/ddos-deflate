@@ -1,0 +1,46 @@
+#!/bin/sh
+# PROVIDE: ddos
+# REQUIRE: DAEMON netif
+# KEYWORD: nojail
+
+# Init script to control ddos daemon
+#
+# Marc S. Brooks <devel@mbrooks.info>
+
+. /etc/rc.subr
+
+name="ddos"
+rcvar="${name}_enable"
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+restart_cmd="${name}_restart"
+status_cmd="${name}_status"
+extra_commands="restart status"
+ddos_program="/usr/local/sbin/ddos"
+# ddos_file is set by rc.conf
+
+test -x $DAEMON || exit 0
+
+ddos_start()
+{
+    ${ddos_program} --start
+}
+
+ddos_stop()
+{
+    ${ddos_program} --stop
+}
+
+ddos_status()
+{
+    ${ddos_program} --status
+}
+
+ddos_restart()
+{
+    ${ddos_program} --stop
+    ${ddos_program} --start
+}
+
+load_rc_config $name
+run_rc_command "$1"
