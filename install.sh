@@ -1,13 +1,13 @@
 #!/bin/sh
 
 # Check for required dependencies
-if [ -f "$DESTDIR/usr/bin/apt-get" ]; then
+if [ -f "/usr/bin/apt-get" ]; then
     install_type='2';
     install_command="apt-get"
-elif [ -f "$DESTDIR/usr/bin/yum" ]; then
+elif [ -f "/usr/bin/yum" ]; then
     install_type='3';
     install_command="yum"
-elif [ -f "$DESTDIR/usr/sbin/pkg" ]; then
+elif [ -f "/usr/sbin/pkg" ]; then
     install_type='4';
     install_command="pkg"
 else
@@ -145,8 +145,8 @@ elif [ -d /etc/rc.d ]; then
     # Activate the service
     echo -n "Activating ddos service..."
     echo 'ddos_enable="YES"' >> /etc/rc.conf
-        service ddos start > /dev/null 2>&1
-        echo " (done)"
+    service ddos start > /dev/null 2>&1
+    echo " (done)"
 elif [ -d /usr/lib/systemd/system ]; then
     echo -n 'Setting up systemd service...'
     mkdir -p "$DESTDIR/usr/lib/systemd/system/"
