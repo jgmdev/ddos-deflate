@@ -192,7 +192,7 @@ ban_incoming_and_outgoing()
         # Strip port without affecting ipv6 addresses (experimental)
         sed 's/:[0-9+]*$//g' | \
         # Ignore Server IP
-        sed -r "/($SERVER_IP_LIST)/Id" | \
+        sed -r "/^($SERVER_IP_LIST)$/Id" | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
@@ -244,7 +244,7 @@ ban_only_incoming()
         # Strip port without affecting ipv6 addresses (experimental)
         sed "s/:[0-9+]*$//g" | \
         # Ignore Server IP
-        sed -r "/($SERVER_IP_LIST)/Id" | \
+        sed -r "/^($SERVER_IP_LIST)$/Id" | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
