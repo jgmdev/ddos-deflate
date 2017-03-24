@@ -56,7 +56,7 @@ if [ ! -d "$DESTDIR/var/lib/ddos" ]; then
     mkdir -p "$DESTDIR/var/lib/ddos"
 fi
 
-echo; echo 'Installing DOS-Deflate 0.8'; echo
+echo; echo 'Installing DOS-Deflate 0.9'; echo
 
 if [ ! -e "$DESTDIR/etc/ddos/ddos.conf" ]; then
     echo -n 'Adding: /etc/ddos/ddos.conf...'
