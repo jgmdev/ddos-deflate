@@ -187,6 +187,8 @@ ban_incoming_and_outgoing()
         grep -E "$CONN_STATES" | \
         # Extract only the fifth column
         awk '{print $5}' | \
+        # Replace ::fff: String on ip
+        sed 's/::ffff://g' | \        
         # Strip port without affecting ipv4 addresses
         sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
@@ -199,8 +201,6 @@ ban_incoming_and_outgoing()
         uniq -c | \
         # Numerical sort in reverse order
         sort -nr | \
-        # Replace ::fff: String on ip
-        sed 's/::ffff://g' | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
         $1
@@ -239,6 +239,8 @@ ban_only_incoming()
     # Only keep connections which are connected to local listening address:port but print foreign address:port
     # ipv6 is always included
     awk 'NR==FNR{a[$1];next} $1 in a {print $2}' $ALL_LISTENING $ALL_CONNS | \
+        # Replace ::fff: String on ip
+        sed 's/::ffff://g' | \
         # Strip port without affecting ipv4 addresses
         sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
@@ -251,8 +253,6 @@ ban_only_incoming()
         uniq -c | \
         # Numerical sort in reverse order
         sort -nr | \
-        # Replace ::fff: String on ip
-        sed 's/::ffff://g' | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
         $1
