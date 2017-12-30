@@ -17,7 +17,7 @@ CONF_PATH="${CONF_PATH}/"
 
 # Other variables
 BANS_IP_LIST="/var/lib/ddos/bans.list"
-SERVER_IP_LIST=`ifconfig | grep "inet " | awk '{print $2}' | sed "s/addr://g" | xargs | sed -e 's/ /|/g'`
+SERVER_IP_LIST=`ifconfig | egrep "inet6? " | sed "s/addr: /addr:/g" | awk '{print $2}' | sed -E "s/addr://g" | sed -E "s/\/[0-9]+//g" | xargs | sed -e 's/ /|/g'`
 
 load_conf()
 {
