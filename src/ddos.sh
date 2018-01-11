@@ -22,7 +22,7 @@ SERVER_IP_LIST=`ifconfig | egrep "inet6? " | sed "s/addr: /addr:/g" | awk '{prin
 load_conf()
 {
     CONF="${CONF_PATH}ddos.conf"
-    if [ -f "$CONF" ] && [ ! "$CONF" == "" ]; then
+    if [ -f "$CONF" ] && [ -n "$CONF" ]; then
         . $CONF
     else
         head
