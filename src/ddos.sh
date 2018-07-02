@@ -112,7 +112,7 @@ ignore_list()
 
 unban_ip()
 {
-    if [ "$1" = ""]; then
+    if [ "$1" = "" ]; then
         return 1
     fi
 
