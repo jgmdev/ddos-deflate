@@ -9,6 +9,9 @@ ddos \- script to mitigate small denial of service attacks.
 .br
 .B ddos
 (-k|--kill) <NUMBER_OF_CONNECTIONS>
+.br
+.B ddos
+(-u|--unban) <IP_ADDRESS>
 
 .SH DESCRIPTION
 .PP
@@ -50,7 +53,10 @@ update or create cron job to run this script regularly
 dsiplay a list of currently whitelisted ip addresses
 .TP
 \fB\-b\fR, \fB\-\-bans\-list\fR
-dsiplay a list of currently banned ip addresses
+display a list of currently banned ip addresses
+.TP
+\fB\-u\fR, \fB\-\-unban\fR <IP_ADDRESS>
+unbans a given \fIIP_ADDRESS\fR
 .TP
 \fB\-d\fR, \fB\-\-start\fR
 initialize a daemon to monitor connections
@@ -135,4 +141,5 @@ Zaf <zaf@vsnl.com> (Copyright (C) 2005)
 
 .SH CONTRIBUTORS
 Jefferson González <jgmdev@gmail.com> (Fixes and improvements)
+.br
 Marc S. Brooks <devel@mbrooks.info> (BSD support)
