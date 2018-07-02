@@ -19,7 +19,7 @@ and easiest to install solutions at the software level.
 netstat -an | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
 
 IP addresses with over a pre-configured number of connections are
-automatically blocked in the server's firewall, which can be direct 
+automatically blocked in the server's firewall, which can be direct
 ipfw, iptables, or Advanced Policy Firewall (APF). (We highly recommend that
 you use APF on your server in general, but deflate will work without it.)
 
@@ -129,6 +129,10 @@ When running the script as a cronjob no restarting is required.
 **-b | --bans-list:**
 
    List currently banned ip addresses.
+
+**-u | --unban:**
+
+    Unbans a given ip address.
 
 **-d | --start:**
 

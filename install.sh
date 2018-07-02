@@ -118,7 +118,24 @@ fi
 
 echo;
 
-if [ -d /etc/init.d ]; then
+if [ -d /usr/lib/systemd/system ]; then
+    echo -n 'Setting up systemd service...'
+    mkdir -p "$DESTDIR/usr/lib/systemd/system/"
+    cp src/ddos.service "$DESTDIR/usr/lib/systemd/system/" > /dev/null 2>&1
+    chmod 0755 "$DESTDIR/usr/lib/systemd/system/ddos.service" > /dev/null 2>&1
+    echo " (done)"
+
+    # Check if systemctl is installed and activate service
+    SYSTEMCTL_PATH=`whereis systemctl`
+    if [ "$SYSTEMCTL_PATH" != "systemctl:" ] && [ "$DESTDIR" = "" ]; then
+        echo -n "Activating ddos service..."
+        systemctl enable ddos > /dev/null 2>&1
+        systemctl start ddos > /dev/null 2>&1
+        echo " (done)"
+    else
+        echo "ddos service needs to be manually started... (warning)"
+    fi
+elif [ -d /etc/init.d ]; then
     echo -n 'Setting up init script...'
     mkdir -p "$DESTDIR/etc/init.d/"
     cp src/ddos.initd "$DESTDIR/etc/init.d/ddos" > /dev/null 2>&1
@@ -147,23 +164,6 @@ elif [ -d /etc/rc.d ]; then
     echo 'ddos_enable="YES"' >> /etc/rc.conf
     service ddos start > /dev/null 2>&1
     echo " (done)"
-elif [ -d /usr/lib/systemd/system ]; then
-    echo -n 'Setting up systemd service...'
-    mkdir -p "$DESTDIR/usr/lib/systemd/system/"
-    cp src/ddos.service "$DESTDIR/usr/lib/systemd/system/" > /dev/null 2>&1
-    chmod 0755 "$DESTDIR/usr/lib/systemd/system/ddos.service" > /dev/null 2>&1
-    echo " (done)"
-
-    # Check if systemctl is installed and activate service
-    SYSTEMCTL_PATH=`whereis systemctl`
-    if [ "$SYSTEMCTL_PATH" != "systemctl:" ] && [ "$DESTDIR" = "" ]; then
-        echo -n "Activating ddos service..."
-        systemctl enable ddos > /dev/null 2>&1
-        systemctl start ddos > /dev/null 2>&1
-        echo " (done)"
-    else
-        echo "ddos service needs to be manually started... (warning)"
-    fi
 elif [ -d /etc/cron.d ] || [ -f /etc/crontab ]; then
     echo -n 'Creating cron to run script every minute...'
     /usr/local/ddos/ddos.sh --cron > /dev/null 2>&1

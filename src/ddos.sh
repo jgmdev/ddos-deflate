@@ -49,6 +49,7 @@ showhelp()
     echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
     echo '-i | --ignore-list: List whitelisted ip addresses'
     echo '-b | --bans-list: List currently banned ip addresses.'
+    echo '-u | --unban: Unbans a given ip address.'
     echo '-d | --start: Initialize a daemon to monitor connections'
     echo '-s | --stop: Stop the daemon'
     echo '-t | --status: Show status of daemon and pid if currently running'
@@ -109,6 +110,32 @@ ignore_list()
     fi
 }
 
+unban_ip()
+{
+    if [ "$1" = ""]; then
+        return 1
+    fi
+
+    if [ "$FIREWALL" = "apf" ]; then
+        $APF -u "$1"
+    elif [ "$FIREWALL" = "csf" ]; then
+        $CSF -dr "$1"
+    elif [ "$FIREWALL" = "ipfw" ]; then
+        rule_number=`$IPF list | awk "/$1/{print $1}"`
+        $IPF -q delete $rule_number
+    elif [ "$FIREWALL" = "iptables" ]; then
+        $IPT -D INPUT -s "$1" -j DROP
+    fi
+
+    log_msg "unbanned $ip"
+
+    grep -v "$1" "${BANS_IP_LIST}" > "${BANS_IP_LIST}.tmp"
+    rm "${BANS_IP_LIST}"
+    mv "${BANS_IP_LIST}.tmp" "${BANS_IP_LIST}"
+
+    return 0
+}
+
 # Unbans ip's after the amount of time given on BAN_PERIOD
 unban_ip_list()
 {
@@ -124,23 +151,7 @@ unban_ip_list()
         connections=`echo "$line" | cut -d" " -f3`
 
         if [ $current_unban_time -gt $ban_time ]; then
-            if [ "$FIREWALL" = "apf" ]; then
-                $APF -u "$ip"
-            elif [ "$FIREWALL" = "csf" ]; then
-                $CSF -dr "$ip"
-            elif [ "$FIREWALL" = "ipfw" ]; then
-                rule_number=`$IPF list | awk "/$ip/{print $1}"`
-                $IPF -q delete $rule_number
-            elif [ "$FIREWALL" = "iptables" ]; then
-                $IPT -D INPUT -s "$ip" -j DROP
-            fi
-
-            log_msg "unbanned $ip"
-
-            # remove the ip from the bans list
-            grep -v "$ip" "${BANS_IP_LIST}" > "${BANS_IP_LIST}.tmp"
-            rm "${BANS_IP_LIST}"
-            mv "${BANS_IP_LIST}.tmp" "${BANS_IP_LIST}"
+            unban_ip "$ip"
         fi
     done < $BANS_IP_LIST
 }
@@ -599,6 +610,15 @@ while [ $1 ]; do
             echo "==================================="
             if [ -e "${BANS_IP_LIST}" ]; then
                 cat "${BANS_IP_LIST}"
+            fi
+            exit
+            ;;
+        '--unban' | '-u' )
+            su_required
+            shift
+            unban_ip $1
+            if [ $? -gt 0 ]; then
+                echo "Please specify a valid ip address."
             fi
             exit
             ;;
