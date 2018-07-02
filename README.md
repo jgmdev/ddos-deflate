@@ -132,7 +132,7 @@ When running the script as a cronjob no restarting is required.
 
 **-u | --unban:**
 
-    Unbans a given ip address.
+   Unbans a given ip address.
 
 **-d | --start:**
 
