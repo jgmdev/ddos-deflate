@@ -127,7 +127,7 @@ unban_ip()
         $IPT -D INPUT -s "$1" -j DROP
     fi
 
-    log_msg "unbanned $ip"
+    log_msg "unbanned $1"
 
     grep -v "$1" "${BANS_IP_LIST}" > "${BANS_IP_LIST}.tmp"
     rm "${BANS_IP_LIST}"
@@ -616,6 +616,7 @@ while [ $1 ]; do
         '--unban' | '-u' )
             su_required
             shift
+            detect_firewall
             unban_ip $1
             if [ $? -gt 0 ]; then
                 echo "Please specify a valid ip address."
