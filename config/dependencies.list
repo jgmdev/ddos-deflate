@@ -7,3 +7,4 @@ timeout             coreutils           coreutils         timeout
 grep                grep                grep              grep
 awk                 awk                 awk               awk
 sed                 sed                 sed               sed
+grepcidr            grepcidr            grepcidr          grepcidr
