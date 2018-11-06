@@ -1,6 +1,21 @@
 Changes Log
 ==========================================================================
 
+Version 1.0 - Date 06/11/2018
+
+  * Support for ip ranges (CIDR) on the ignore.ip.list thanks to
+    safly (https://github.com/safly)
+  * grepcidr install requirement introduced with the support for CIDR
+  * New syntax supported on ignore.ip.list
+       a.b.c.d/xy        (CIDR format)
+       a.b.c.d-e.f.g.h   (IP range)
+    For more details read the grepcidr man page.
+  * Fixed bug $CONF not found thanks to
+    WoozyMasta (https://github.com/WoozyMasta)
+  * Added unban flag -u --unban
+  * Added logrotate configuration file to uninstall script.
+  * Prioritize systemd detection on install script.
+
 Version 0.9 - Date 05/03/2017
 
   * Support for freebsd and many other improvements thanks to

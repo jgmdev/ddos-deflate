@@ -37,8 +37,7 @@ and easiest to install solutions at the software level.
 .PP
 IP addresses with over a pre-configured number of connections are
 automatically blocked in the server's firewall, which can be direct
-ipfw, iptables, or Advanced Policy Firewall (APF). (We highly recommend that
-you use APF on your server in general, but deflate will work without it.)
+ipfw, iptables, or Advanced Policy Firewall (APF).
 
 .SH OPTIONS
 
@@ -78,12 +77,27 @@ block ip's making \fINUMBER_OF_CONNECTIONS\fR or more
 .PP
 It is possible to whitelist IP addresses by adding a
 .B new-line
-separated list of ip's to /etc/ddos/ignore.ip.list
+separated list of ip's to /etc/ddos/ignore.ip.list,
+you can use IP range syntax and CIDR syntax, for example:
+
+.RS 4
+192.168.1.0/24           (CIDR format)
+.br
+24.12.34.1-24.12.34.30   (IP range)
+.br
+192.168.1.156            (Single IP)
+.RE
 
 .PP
 It is also possible to whitelist hostnames by adding a
 .B new-line
-separated list of hosts to /etc/ddos/ignore.host.list
+separated list of hosts to /etc/ddos/ignore.host.list, for example:
+
+.RS 4
+googlebot.com
+.br
+dynamic-ip.somehost.com
+.RE
 
 .SH SETTINGS
 You can modify the script settings by editing /etc/ddos/ddos.conf

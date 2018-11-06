@@ -20,13 +20,13 @@ netstat -an | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
 
 IP addresses with over a pre-configured number of connections are
 automatically blocked in the server's firewall, which can be direct
-ipfw, iptables, or Advanced Policy Firewall (APF). (We highly recommend that
-you use APF on your server in general, but deflate will work without it.)
+ipfw, iptables, or Advanced Policy Firewall (APF).
 
 ### Notable Features
 
 * It is possible to whitelist IP addresses, via /etc/ddos/ignore.ip.list.
 * It is possible to whitelist hostnames, via /etc/ddos/ignore.host.list.
+* IP ranges and CIDR syntax is supported on /etc/ddos/ignore.ip.list
 * Simple configuration file: /etc/ddos/ddos.conf
 * IP addresses are automatically unblocked after a preconfigured time limit (default: 600 seconds)
 * The script can run as a cron job at chosen frequency via the configuration file (default: 1 minute)
@@ -85,6 +85,8 @@ On this file you can add a list of ip addresses to be whitelisted, for
 example:
 
 > 12.43.63.13 <br />
+> 165.123.34.43-165.123.34.100 <br />
+> 192.168.1.0/24 <br />
 > 129.134.131.2
 
 **/etc/ddos/ddos.conf**

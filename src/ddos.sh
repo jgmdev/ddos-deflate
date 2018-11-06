@@ -1,6 +1,6 @@
 #!/bin/sh
 ##############################################################################
-# DDoS-Deflate version 0.9 Author: Zaf <zaf@vsnl.com>                        #
+# DDoS-Deflate version 1.0 Author: Zaf <zaf@vsnl.com>                        #
 ##############################################################################
 # Contributors:                                                              #
 # Jefferson González <jgmdev@gmail.com>                                      #
@@ -33,7 +33,7 @@ load_conf()
 
 head()
 {
-    echo "DDoS-Deflate version 0.9"
+    echo "DDoS-Deflate version 1.0"
     echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
