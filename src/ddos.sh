@@ -320,13 +320,9 @@ check_connections()
         CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
         CURR_LINE_IP=$(echo $line | cut -d" " -f2)
 
-        IGNORE_BAN=`ignore_list "1" | grep -c $CURR_LINE_IP`
-
-        if [ $IGNORE_BAN -ge 1 ]; then
-            continue
-        fi
-
-        IP_BAN_NOW=1
+        #Support IP CIDR 2018-11-06
+        IGNORE_IP=$(ignore_list "1")
+        grepcidr "$IGNORE_IP" <(echo "$CURR_LINE_IP") >/dev/null && continue || IP_BAN_NOW=1
 
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
         echo $CURR_LINE_IP >> $BANNED_IP_LIST
