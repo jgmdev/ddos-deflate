@@ -1,6 +1,7 @@
 # DDoS Deflate
-Fork of DDoS Deflate http://deflate.medialayer.com/ with
-fixes, improvements and new features.
+Fork of DDoS Deflate on now inexistent http://deflate.medialayer.com/
+([MediaLayer went out of business](http://www.webhostingtalk.com/showthread.php?t=1494121&highlight=medialayer))
+with fixes, improvements and new features.
 
 **Original Author:** Zaf <zaf@vsnl.com> (Copyright (C) 2005)
 
