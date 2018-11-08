@@ -322,7 +322,7 @@ check_connections()
 
         #Support IP CIDR 2018-11-06
         IGNORE_IP=$(ignore_list "1")
-        grepcidr "$IGNORE_IP" <(echo "$CURR_LINE_IP") >/dev/null && continue || IP_BAN_NOW=1
+        grepcidr "$IGNORE_IP" < $(echo "$CURR_LINE_IP") > /dev/null && continue || IP_BAN_NOW=1
 
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
         echo $CURR_LINE_IP >> $BANNED_IP_LIST
