@@ -1,6 +1,17 @@
 Changes Log
 ==========================================================================
 
+Version 1.1 - Date 09/11/2018
+
+  * Fixed syntax error introduced in 1.0 thanks to @MarcelFox
+  * Fixed issue #36 (cron file created incorrectly).
+  * Added cron job deprecation warning, daemon mode should be used instead.
+  * Fixed many issues reported by shellcheck.
+  * Added IPv6 support to ban_incoming_and_outgoing
+    (ban_only_incoming should be next).
+  * Use ss instead of netstat.
+  * started some drafting to add blocking by port support.
+
 Version 1.0 - Date 06/11/2018
 
   * Support for ip ranges (CIDR) on the ignore.ip.list thanks to

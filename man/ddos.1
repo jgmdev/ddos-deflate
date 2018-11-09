@@ -21,10 +21,10 @@ command below to create a list of IP addresses connected to the server,
 along with their total number of connections. It is one of the simplest
 and easiest to install solutions at the software level.
 
-.B netstat
--ntu |
+.B ss
+-Hntu state connected |
 .B awk
-\'{print $5}\' |
+\'{print $6}\' |
 .B cut
 -d: -f1 |
 .B sort
@@ -47,6 +47,11 @@ display the script options
 .TP
 \fB\-c\fR, \fB\-\-cron\fR
 update or create cron job to run this script regularly
+.RS 7
+.B Warning:
+this feature is deprecated and ddos-deflate should be run on
+daemon mode.
+.RE
 .TP
 \fB\-i\fR, \fB\-\-ignore\-list\fR
 dsiplay a list of currently whitelisted ip addresses
@@ -68,6 +73,9 @@ display the daemon status and pid if running
 .TP
 \fB\-v\fR, \fB\-\-view\fR
 display active connections to the server
+.TP
+\fB\-y\fR, \fB\-\-view-port\fR
+display active connections to the server including the port #
 .TP
 \fB\-k\fR, \fB\-\-kill\fR <NUMBER_OF_CONNECTIONS>
 block ip's making \fINUMBER_OF_CONNECTIONS\fR or more
@@ -132,10 +140,10 @@ Leaving this value empty would suppress sending of mails. (Default: root)
 Number of seconds the banned ip should remain in blacklist. (Default: 600)
 
 .TP
-.B CONN_STATES = '<valid netstat states>'
-Connection states separated by pipe operator to block. See:
-.B netstat(1).
-(Default: "ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING")
+.B CONN_STATES = '<valid ss states>'
+Connection states separated by colon operator (:) to block. See:
+.B ss(1).
+(Default: "connected")
 
 .SH FILES
 .B /usr/local/ddos/LICENSE

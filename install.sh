@@ -14,7 +14,7 @@ else
     install_type='0'
 fi
 
-packages='nslookup netstat ifconfig tcpkill timeout awk sed grep grepcidr'
+packages='nslookup netstat ss ifconfig tcpkill timeout awk sed grep grepcidr'
 
 if  [ "$install_type" = '4' ]; then
     packages="$packages ipfw"

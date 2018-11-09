@@ -1,6 +1,6 @@
 #!/bin/sh
 ##############################################################################
-# DDoS-Deflate version 1.0 Author: Zaf <zaf@vsnl.com>                        #
+# DDoS-Deflate Original Author: Zaf <zaf@vsnl.com>                           #
 ##############################################################################
 # Contributors:                                                              #
 # Jefferson González <jgmdev@gmail.com>                                      #
@@ -17,7 +17,7 @@ CONF_PATH="${CONF_PATH}/"
 
 # Other variables
 BANS_IP_LIST="/var/lib/ddos/bans.list"
-SERVER_IP_LIST=`ifconfig | egrep "inet6? " | sed "s/addr: /addr:/g" | awk '{print $2}' | sed -E "s/addr://g" | sed -E "s/\/[0-9]+//g" | xargs | sed -e 's/ /|/g'`
+SERVER_IP_LIST=$(ifconfig | grep -E "inet6? " | sed "s/addr: /addr:/g" | awk '{print $2}' | sed -E "s/addr://g" | sed -E "s/\\/[0-9]+//g" | xargs | sed -e 's/ /|/g')
 
 load_conf()
 {
@@ -33,7 +33,7 @@ load_conf()
 
 head()
 {
-    echo "DDoS-Deflate version 1.0"
+    echo "DDoS-Deflate version 1.1"
     echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
@@ -42,7 +42,7 @@ showhelp()
 {
     head
     echo 'Usage: ddos [OPTIONS] [N]'
-    echo 'N : number of tcp/udp connections (default 150)'
+    echo 'N : number of tcp/udp connections (default '"$NO_OF_CONNECTIONS"')'
     echo
     echo 'OPTIONS:'
     echo '-h | --help: Show this help screen'
@@ -54,6 +54,7 @@ showhelp()
     echo '-s | --stop: Stop the daemon'
     echo '-t | --status: Show status of daemon and pid if currently running'
     echo '-v | --view: Display active connections to the server'
+    echo '-y | --view-port: Display active connections to the server including the port'
     echo '-k | --kill: Block all ip addresses making more than N connections'
 }
 
@@ -61,7 +62,7 @@ showhelp()
 # script and exit with message if not.
 su_required()
 {
-    user_id=`id -u`
+    user_id=$(id -u)
 
     if [ "$user_id" != "0" ]; then
         echo "You need super user priviliges for this."
@@ -85,15 +86,15 @@ log_msg()
 ignore_list()
 {
     for the_host in $(grep -v "#" "${CONF_PATH}${IGNORE_HOST_LIST}"); do
-        host_ip=`nslookup $the_host | tail -n +3 | grep "Address" | awk '{print $2}'`
+        host_ip=$(nslookup "$the_host" | tail -n +3 | grep "Address" | awk '{print $2}')
 
         # In case an ip is given instead of hostname
         # in the ignore.hosts.list file
         if [ "$host_ip" = "" ]; then
-            echo $the_host
+            echo "$the_host"
         else
             for ips in $host_ip; do
-                echo $ips
+                echo "$ips"
             done
         fi
     done
@@ -110,24 +111,57 @@ ignore_list()
     fi
 }
 
+# Bans a given ip using autodetected firewall or
+# ip6tables for ipv6 connections.
+# param1 The ip address to block
+ban_ip()
+{
+    if ! echo "$1" | grep ":">/dev/null; then
+        if [ "$FIREWALL" = "apf" ]; then
+            $APF -d "$1"
+        elif [ "$FIREWALL" = "csf" ]; then
+            $CSF -d "$1"
+        elif [ "$FIREWALL" = "ipfw" ]; then
+            rule_number=$(ipfw list | tail -1 | awk '/deny/{print $1}')
+            next_number=$((rule_number + 1))
+            $IPF -q add "$next_number" deny all from "$1" to any
+        elif [ "$FIREWALL" = "iptables" ]; then
+            $IPT -I INPUT -s "$1" -j DROP
+        fi
+    else
+        ip6tables -I INPUT -s "$1" -j DROP
+    fi
+}
+
+# Unbans an ip.
+# param1 The ip address
+# param2 Optional amount of connections the unbanned ip did.
 unban_ip()
 {
     if [ "$1" = "" ]; then
         return 1
     fi
 
-    if [ "$FIREWALL" = "apf" ]; then
-        $APF -u "$1"
-    elif [ "$FIREWALL" = "csf" ]; then
-        $CSF -dr "$1"
-    elif [ "$FIREWALL" = "ipfw" ]; then
-        rule_number=`$IPF list | awk "/$1/{print $1}"`
-        $IPF -q delete $rule_number
-    elif [ "$FIREWALL" = "iptables" ]; then
-        $IPT -D INPUT -s "$1" -j DROP
+    if ! echo "$1" | grep ":">/dev/null; then
+        if [ "$FIREWALL" = "apf" ]; then
+            $APF -u "$1"
+        elif [ "$FIREWALL" = "csf" ]; then
+            $CSF -dr "$1"
+        elif [ "$FIREWALL" = "ipfw" ]; then
+            rule_number=$($IPF list | awk "/$1/{print $1}")
+            $IPF -q delete "$rule_number"
+        elif [ "$FIREWALL" = "iptables" ]; then
+            $IPT -D INPUT -s "$1" -j DROP
+        fi
+    else
+        ip6tables -D INPUT -s "$1" -j DROP
     fi
 
-    log_msg "unbanned $1"
+    if [ "$2" != "" ]; then
+        log_msg "unbanned $1 that opened $2 connections"
+    else
+        log_msg "unbanned $1"
+    fi
 
     grep -v "$1" "${BANS_IP_LIST}" > "${BANS_IP_LIST}.tmp"
     rm "${BANS_IP_LIST}"
@@ -139,19 +173,19 @@ unban_ip()
 # Unbans ip's after the amount of time given on BAN_PERIOD
 unban_ip_list()
 {
-    current_unban_time=`date +"%s"`
+    current_time=$(date +"%s")
 
     while read line; do
         if [ "$line" = "" ]; then
             continue
         fi
 
-        ban_time=`echo "$line" | cut -d" " -f1`
-        ip=`echo "$line" | cut -d" " -f2`
-        connections=`echo "$line" | cut -d" " -f3`
+        ban_time=$(echo "$line" | cut -d" " -f1)
+        ip=$(echo "$line" | cut -d" " -f2)
+        connections=$(echo "$line" | cut -d" " -f3)
 
-        if [ $current_unban_time -gt $ban_time ]; then
-            unban_ip "$ip"
+        if [ "$current_time" -gt "$ban_time" ]; then
+            unban_ip "$ip" "$connections"
         fi
     done < $BANS_IP_LIST
 }
@@ -160,31 +194,25 @@ add_to_cron()
 {
     su_required
 
-    if [ $FREQ -le 2 ]; then
-        cron_task="0-59/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1"
+    echo "Warning: this feature is deprecated and ddos-deflate should" \
+         "be run on daemon mode instead."
 
-        if [ "$FIREWALL" = "ipfw" ]; then
-            cron_file=/etc/crontab
-            sed -i '' '/ddos/d' $cron_file
-            echo $cron_task >> $cron_file
-        else
-            rm -f $CRON
-            echo $cron_task > $CRON
-            chmod 644 $CRON
-        fi
+    if [ "$FREQ" -gt 59 ]; then
+        FREQ=1
+    fi
+
+    # since this string contains * it is needed to double quote the
+    # variable when using it or the * will be evaluated by the shell
+    cron_task="*/$FREQ * * * * root $SBINDIR/ddos -k > /dev/null 2>&1"
+
+    if [ "$FIREWALL" = "ipfw" ]; then
+        cron_file=/etc/crontab
+        sed -i '' '/ddos/d' "$cron_file"
+        echo "$cron_task" >> "$cron_file"
     else
-        let "START_MINUTE = $RANDOM % ($FREQ - 1)"
-        let "START_MINUTE = $START_MINUTE + 1"
-        let "END_MINUTE = 60 - $FREQ + $START_MINUTE"
-
-        cron_task="$START_MINUTE-$END_MINUTE/$FREQ * * * * root $SBINDIR/ddos -k >/dev/null 2>&1"
-
-        if [ "$FIREWALL" = "ipfw" ]; then
-            echo $cron_task >> /etc/crontab
-        else
-            echo $cron_task > $CRON
-            chmod 644 $CRON
-        fi
+        rm -f "$CRON"
+        echo "$cron_task" > "$CRON"
+        chmod 644 "$CRON"
     fi
 
     log_msg "added cron job"
@@ -192,16 +220,12 @@ add_to_cron()
 
 ban_incoming_and_outgoing()
 {
-    # Find all connections
-    netstat -an | \
-        # Match only the given connection states
-        grep -E "$CONN_STATES" | \
+    # Find all ipv4 connections
+    ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
         # Extract only the fifth column
-        awk '{print $5}' | \
-        # Strip port without affecting ipv4 addresses
-        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
-        # Strip port without affecting ipv6 addresses (experimental)
-        sed 's/:[0-9+]*$//g' | \
+        awk '{print $6}' | \
+        # Strip port
+        cut -d":" -f1 | \
         # Ignore Server IP
         sed -r "/^($SERVER_IP_LIST)$/Id" | \
         # Sort addresses for uniq to work correctly
@@ -210,17 +234,33 @@ ban_incoming_and_outgoing()
         uniq -c | \
         # Numerical sort in reverse order
         sort -nr | \
-        # Replace ::fff: String on ip
-        sed 's/::ffff://g' | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
-        $1
+        "$1"
+
+    # Find all ipv6 connections
+    ss -6Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+        # Extract only the fifth column
+        awk '{print $6}' | \
+        # Strip port and leading [
+        sed -E "s/]:[0-9]+//g" | sed "s/\\[//g" | \
+        # Ignore Server IP
+        sed -r "/^($SERVER_IP_LIST)$/Id" | \
+        # Sort addresses for uniq to work correctly
+        sort | \
+        # Group same occurrences of ip and prepend amount of occurences found
+        uniq -c | \
+        # Numerical sort in reverse order
+        sort -nr | \
+        # Only store connections that exceed max allowed
+        awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" >> \
+        "$1"
 }
 
 ban_only_incoming()
 {
-    ALL_LISTENING=$(mktemp $TMP_PREFIX.XXXXXXXX)
-    ALL_CONNS=$(mktemp $TMP_PREFIX.XXXXXXXX)
+    ALL_LISTENING=$(mktemp "$TMP_PREFIX".XXXXXXXX)
+    ALL_CONNS=$(mktemp "$TMP_PREFIX".XXXXXXXX)
 
     # Find all connections
     netstat -an | \
@@ -228,14 +268,14 @@ ban_only_incoming()
         grep -E "$CONN_STATES" | \
         # Extract both local and foreign address:port
         awk '{print $4" "$5;}'> \
-        $ALL_CONNS
+        "$ALL_CONNS"
 
     # Find all connections
     netstat -an | \
         # Only keep local address:port
         awk '{print $4}' | \
         # Also include specific server address when address is 0.0.0.0 (only ipv4)
-        awk -v host_ip=$HOST_IP \
+        awk -v host_ip="$HOST_IP" \
         '{ ip_pos = index($0, "0.0.0.0");
             if (ip_pos != 0) {
                 port_pos = index($0, ":");
@@ -245,11 +285,11 @@ ban_only_incoming()
                 print $0;
             }
         }' > \
-        $ALL_LISTENING
+        "$ALL_LISTENING"
 
     # Only keep connections which are connected to local listening address:port but print foreign address:port
     # ipv6 is always included
-    awk 'NR==FNR{a[$1];next} $1 in a {print $2}' $ALL_LISTENING $ALL_CONNS | \
+    awk 'NR==FNR{a[$1];next} $1 in a {print $2}' "$ALL_LISTENING" "$ALL_CONNS" | \
         # Strip port without affecting ipv4 addresses
         sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
         # Strip port without affecting ipv6 addresses (experimental)
@@ -266,10 +306,10 @@ ban_only_incoming()
         sed 's/::ffff://g' | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
-        $1
+        "$1"
 
-    rm $ALL_LISTENING
-    rm $ALL_CONNS
+    rm "$ALL_LISTENING"
+    rm "$ALL_CONNS"
 }
 
 # Check active connections and ban if neccessary.
@@ -279,117 +319,176 @@ check_connections()
 
     TMP_PREFIX='/tmp/ddos'
     TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
-    BAD_IP_LIST=`$TMP_FILE`
-
-    # Original command to get ip's
-    #netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr > $BAD_IP_LIST
+    BAD_IP_LIST=$($TMP_FILE)
 
     if $ONLY_INCOMING; then
-        ban_only_incoming $BAD_IP_LIST
+        ban_only_incoming "$BAD_IP_LIST"
     else
-        ban_incoming_and_outgoing $BAD_IP_LIST
+        ban_incoming_and_outgoing "$BAD_IP_LIST"
     fi
 
-    FOUND=$(cat $BAD_IP_LIST)
+    FOUND=$(cat "$BAD_IP_LIST")
 
     if [ "$FOUND" = "" ]; then
-        rm -f $BAD_IP_LIST
+        rm -f "$BAD_IP_LIST"
 
-        if [ $KILL -eq 1 ]; then
+        if [ "$KILL" -eq 1 ]; then
             echo "No connections exceeding max allowed."
         fi
 
         return 0
     fi
 
-    if [ $KILL -eq 1 ]; then
+    if [ "$KILL" -eq 1 ]; then
         echo "List of connections that exceed max allowed"
         echo "==========================================="
-        cat $BAD_IP_LIST
+        cat "$BAD_IP_LIST"
     fi
 
-    BANNED_IP_MAIL=`$TMP_FILE`
-    BANNED_IP_LIST=`$TMP_FILE`
+    BANNED_IP_MAIL=$($TMP_FILE)
+    BANNED_IP_LIST=$($TMP_FILE)
 
-    echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
-    echo >> $BANNED_IP_MAIL
+    echo "Banned the following ip addresses on $(date)" > "$BANNED_IP_MAIL"
+    echo >> "$BANNED_IP_MAIL"
 
     IP_BAN_NOW=0
 
     while read line; do
-        CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
-        CURR_LINE_IP=$(echo $line | cut -d" " -f2)
+        CURR_LINE_CONN=$(echo "$line" | cut -d" " -f1)
+        CURR_LINE_IP=$(echo "$line" | cut -d" " -f2)
 
-        #Support IP CIDR 2018-11-06
         IGNORE_IP=$(ignore_list "1")
-        grepcidr "$IGNORE_IP" < $(echo "$CURR_LINE_IP") > /dev/null && continue || IP_BAN_NOW=1
+        grepcidr "$IGNORE_IP" < "$(echo "$CURR_LINE_IP")" > /dev/null && continue || IP_BAN_NOW=1
 
-        echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
-        echo $CURR_LINE_IP >> $BANNED_IP_LIST
+        echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> "$BANNED_IP_MAIL"
+        echo "$CURR_LINE_IP" >> "$BANNED_IP_LIST"
 
-        current_time=`date +"%s"`
-        echo "$(($current_time+$BAN_PERIOD)) ${CURR_LINE_IP} ${CURR_LINE_CONN}" >> "${BANS_IP_LIST}"
+        current_time=$(date +"%s")
+        echo "$((current_time+BAN_PERIOD)) ${CURR_LINE_IP} ${CURR_LINE_CONN}" >> "${BANS_IP_LIST}"
 
         # execute tcpkill for 60 seconds
         timeout -k 60 -s 9 60 \
-            tcpkill -9 host $CURR_LINE_IP > /dev/null 2>&1 &
+            tcpkill -9 host "$CURR_LINE_IP" > /dev/null 2>&1 &
 
-        if [ "$FIREWALL" = "apf" ]; then
-            $APF -d $CURR_LINE_IP
-        elif [ "$FIREWALL" = "csf" ]; then
-            $CSF -d $CURR_LINE_IP
-        elif [ "$FIREWALL" = "ipfw" ]; then
-            rule_number=`ipfw list | tail -1 | awk '/deny/{print $1}'`
-            next_number=$((rule_number + 1))
-            $IPF -q add $next_number deny all from $CURR_LINE_IP to any
-        elif [ "$FIREWALL" = "iptables" ]; then
-            $IPT -I INPUT -s $CURR_LINE_IP -j DROP
-        fi
+        ban_ip "$CURR_LINE_IP"
 
         log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections for ban period $BAN_PERIOD"
-    done < $BAD_IP_LIST
+    done < "$BAD_IP_LIST"
 
-    if [ $IP_BAN_NOW -eq 1 ]; then
+    if [ "$IP_BAN_NOW" -eq 1 ]; then
         if [ -n "$EMAIL_TO" ]; then
-            dt=`date`
-            hn=`hostname`
-            cat $BANNED_IP_MAIL | mail -s "[$hn] IP addresses banned on $dt" $EMAIL_TO
+            dt=$(date)
+            hn=$(hostname)
+            cat "$BANNED_IP_MAIL" | mail -s "[$hn] IP addresses banned on $dt" $EMAIL_TO
         fi
 
-        if [ $KILL -eq 1 ]; then
+        if [ "$KILL" -eq 1 ]; then
             echo "==========================================="
             echo "Banned IP addresses:"
             echo "==========================================="
-            cat $BANNED_IP_LIST
+            cat "$BANNED_IP_LIST"
         fi
     fi
 
-    rm -f $TMP_PREFIX.*
+    rm -f "$TMP_PREFIX".*
 }
 
 # Active connections to server.
 view_connections()
 {
-    # Find all connections
-    netstat -an | \
-        # Match only the given connection states
-        grep -E "$CONN_STATES" | \
-        # Extract only the fifth column
-        awk '{print $5}' | \
-        # Strip port without affecting ipv4 addresses
-        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
-        # Strip port without affecting ipv6 addresses (experimental)
-        sed "s/:[0-9+]*$//g" | \
-        # Ignore Server IP
-        sed -r "/($SERVER_IP_LIST)/Id" | \
-        # Sort addresses for uniq to work correctly
-        sort | \
-        # Group same occurrences of ip and prepend amount of occurences found
-        uniq -c | \
-        # Numerical sort in reverse order
-        sort -nr | \
-        # Replace ::fff: String on ip
-        sed 's/::ffff://g'
+    ip6_show=false
+    ip4_show=false
+
+    if [ "$1" = "6" ]; then
+        ip6_show=true
+    elif [ "$1" = "4" ]; then
+        ip4_show=true
+    else
+        ip6_show=true
+        ip4_show=true
+    fi
+
+    # Find all ipv4 connections
+    if $ip4_show; then
+        ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+            # Extract only the fifth column
+            awk '{print $6}' | \
+            # Strip port
+            cut -d":" -f1 | \
+            # Ignore Server IP
+            sed -r "/^($SERVER_IP_LIST)$/Id" | \
+            # Sort addresses for uniq to work correctly
+            sort | \
+            # Group same occurrences of ip and prepend amount of occurences found
+            uniq -c | \
+            # Numerical sort in reverse order
+            sort -nr
+    fi
+
+    # Find all ipv6 connections
+    if $ip6_show; then
+        ss -6Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+            # Extract only the fifth column
+            awk '{print $6}' | \
+            # Strip port and leading [
+            sed -E "s/]:[0-9]+//g" | sed "s/\\[//g" | \
+            # Ignore Server IP
+            sed -r "/^($SERVER_IP_LIST)$/Id" | \
+            # Sort addresses for uniq to work correctly
+            sort | \
+            # Group same occurrences of ip and prepend amount of occurences found
+            uniq -c | \
+            # Numerical sort in reverse order
+            sort -nr
+    fi
+}
+
+# Active connections to server including port.
+view_connections_port()
+{
+    ip6_show=false
+    ip4_show=false
+
+    if [ "$1" = "6" ]; then
+        ip6_show=true
+    elif [ "$1" = "4" ]; then
+        ip4_show=true
+    else
+        ip6_show=true
+        ip4_show=true
+    fi
+
+    # Find all ipv4 connections
+    if $ip4_show; then
+        ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+            # Extract only the fifth column
+            awk '{print $6}' | \
+            # Ignore Server IP
+            sed -r "/^($SERVER_IP_LIST)$/Id" | \
+            # Sort addresses for uniq to work correctly
+            sort | \
+            # Group same occurrences of ip and prepend amount of occurences found
+            uniq -c | \
+            # Numerical sort in reverse order
+            sort -nr
+    fi
+
+    # Find all ipv6 connections
+    if $ip6_show; then
+        ss -6Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+            # Extract only the fifth column
+            awk '{print $6}' | \
+            # Strip leading [ and ending ]
+            sed -E "s/(\\[|\\])//g" | \
+            # Ignore Server IP
+            sed -r "/^($SERVER_IP_LIST)$/Id" | \
+            # Sort addresses for uniq to work correctly
+            sort | \
+            # Group same occurrences of ip and prepend amount of occurences found
+            uniq -c | \
+            # Numerical sort in reverse order
+            sort -nr
+    fi
 }
 
 # Executed as a cleanup function when the daemon is stopped
@@ -405,8 +504,8 @@ on_daemon_exit()
 # Return the current process id of the daemon or 0 if not running
 daemon_pid()
 {
-    if [ -e /var/run/ddos.pid ]; then
-        echo $(cat /var/run/ddos.pid)
+    if [ -e "/var/run/ddos.pid" ]; then
+        echo "$(cat /var/run/ddos.pid)"
 
         return
     fi
@@ -419,7 +518,7 @@ daemon_pid()
 daemon_running()
 {
     if [ -e /var/run/ddos.pid ]; then
-        running_pid=$(ps -A | grep ddos | awk '{print $1}')
+        running_pid=$(pgrep ddos)
 
         if [ "$running_pid" != "" ]; then
             current_pid=$(daemon_pid)
@@ -440,7 +539,7 @@ start_daemon()
 {
     su_required
 
-    if [ $(daemon_running) = "1" ]; then
+    if [ "$(daemon_running)" = "1" ]; then
         echo "ddos daemon is already running..."
         exit 0
     fi
@@ -451,7 +550,7 @@ start_daemon()
         touch "${BANS_IP_LIST}"
     fi
 
-    nohup $0 -l > /dev/null 2>&1 &
+    nohup "$0" -l > /dev/null 2>&1 &
 
     log_msg "daemon started"
 }
@@ -460,16 +559,16 @@ stop_daemon()
 {
     su_required
 
-    if [ $(daemon_running) = "0" ]; then
+    if [ "$(daemon_running)" = "0" ]; then
         echo "ddos daemon is not running..."
         exit 0
     fi
 
     echo "stopping ddos daemon..."
 
-    kill $(daemon_pid)
+    kill "$(daemon_pid)"
 
-    while [ -e /var/run/ddos.pid ]; do
+    while [ -e "/var/run/ddos.pid" ]; do
         continue
     done
 
@@ -480,11 +579,11 @@ daemon_loop()
 {
     su_required
 
-    if [ $(daemon_running) = "1" ]; then
+    if [ "$(daemon_running)" = "1" ]; then
         exit 0
     fi
 
-    echo "$$" > /var/run/ddos.pid
+    echo "$$" > "/var/run/ddos.pid"
 
     trap 'on_daemon_exit' INT
     trap 'on_daemon_exit' QUIT
@@ -494,21 +593,21 @@ daemon_loop()
     detect_firewall
 
     # run unban_ip_list after 2 minutes of initialization
-    ban_check_timer=`date +"%s"`
-    ban_check_timer=$(($ban_check_timer+120))
+    ban_check_timer=$(date +"%s")
+    ban_check_timer=$((ban_check_timer+120))
 
     while true; do
         check_connections
 
         # unban expired ip's every 1 minute
-        current_loop_time=`date +"%s"`
-        if [ $current_loop_time -gt $ban_check_timer ]; then
+        current_loop_time=$(date +"%s")
+        if [ "$current_loop_time" -gt "$ban_check_timer" ]; then
             unban_ip_list
-            ban_check_timer=`date +"%s"`
-            ban_check_timer=$(($ban_check_timer+60))
+            ban_check_timer=$(date +"%s")
+            ban_check_timer=$((ban_check_timer+60))
         fi
 
-        sleep $DAEMON_FREQ
+        sleep "$DAEMON_FREQ"
     done
 }
 
@@ -516,7 +615,7 @@ daemon_status()
 {
     current_pid=$(daemon_pid)
 
-    if [ $(daemon_running) = "1" ]; then
+    if [ "$(daemon_running)" = "1" ]; then
         echo "ddos status: running with pid $current_pid"
     else
         echo "ddos status: not running"
@@ -526,10 +625,10 @@ daemon_status()
 detect_firewall()
 {
     if [ "$FIREWALL" = "auto" ] || [ "$FIREWALL" = "" ]; then
-        apf_where=`whereis apf`;
-        csf_where=`whereis csf`;
-        ipf_where=`whereis ipfw`;
-        ipt_where=`whereis iptables`;
+        apf_where=$(whereis apf);
+        csf_where=$(whereis csf);
+        ipf_where=$(whereis ipfw);
+        ipt_where=$(whereis iptables);
 
         if [ -e "$APF" ]; then
             FIREWALL="apf"
@@ -559,6 +658,27 @@ detect_firewall()
     fi
 }
 
+view_ports()
+{
+    printf "Port blocking is: "
+
+    if $ENABLE_PORTS; then
+        prinft "enabled\n"
+    else
+        printf "disabled\n"
+    fi
+
+    printf -- '-%.0s' $(seq 48); echo ""
+    printf "% -15s % -15s % -15s\n" "Port" "Max-Conn" "Ban-Time"
+    printf -- '-%.0s' $(seq 48); echo ""
+    for port in $(echo "$PORT_MAX_CONNECTIONS" | xargs); do
+        number=$(echo "$port" | cut -d":" -f1)
+        max_conn=$(echo "$port" | cut -d":" -f2)
+        ban_time=$(echo "$port" | cut -d":" -f3)
+        printf "% -15s % -15s % -15s\n" $number $max_conn $ban_time
+    done
+}
+
 # Set Default settings
 PROGDIR="/usr/local/ddos"
 SBINDIR="/usr/local/sbin"
@@ -573,19 +693,26 @@ IPT="/sbin/iptables"
 FREQ=1
 DAEMON_FREQ=5
 NO_OF_CONNECTIONS=150
+ENABLE_PORTS=false
+PORT_MAX_CONNECTIONS="80:150:600 443:150:600"
 FIREWALL="auto"
 EMAIL_TO="root"
 BAN_PERIOD=600
-CONN_STATES="ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING"
+CONN_STATES="connected"
 ONLY_INCOMING=false
 HOST_IP="0.0.0.0"
 
 # Load custom settings
 load_conf
 
+# Overwrite old configuration values
+if echo "$CONN_STATES" | grep "|">/dev/null; then
+    CONN_STATES="connected"
+fi
+
 KILL=0
 
-while [ $1 ]; do
+while [ "$1" ]; do
     case $1 in
         '-h' | '--help' | '?' )
             showhelp
@@ -613,8 +740,8 @@ while [ $1 ]; do
             su_required
             shift
             detect_firewall
-            unban_ip $1
-            if [ $? -gt 0 ]; then
+
+            if ! unban_ip "$1"; then
                 echo "Please specify a valid ip address."
             fi
             exit
@@ -637,7 +764,37 @@ while [ $1 ]; do
             exit
             ;;
         '--view' | '-v' )
-            view_connections
+            shift
+            view_connections "$1"
+            exit
+            ;;
+        '--view-port' | '-y' )
+            shift
+            view_connections_port "$1"
+            exit
+            ;;
+        '-v6' | '-6v' )
+            shift
+            view_connections 6
+            exit
+            ;;
+        '-y6' | '-6y' )
+            shift
+            view_connections_port 6
+            exit
+            ;;
+        '-v4' | '-4v' )
+            shift
+            view_connections 4
+            exit
+            ;;
+        '-y4' | '-4y' )
+            shift
+            view_connections_port 4
+            exit
+            ;;
+        '--ports' | '-p' )
+            view_ports
             exit
             ;;
         '--kill' | '-k' )
