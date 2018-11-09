@@ -71,11 +71,13 @@ stop the daemon
 \fB\-t\fR, \fB\-\-status\fR
 display the daemon status and pid if running
 .TP
-\fB\-v\fR, \fB\-\-view\fR
-display active connections to the server
+\fB\-v[4|6]\fR, \fB\-\-view [4|6]\fR
+display active connections to the server, combine with 4 or 6 to define
+the ip version.
 .TP
-\fB\-y\fR, \fB\-\-view-port\fR
-display active connections to the server including the port #
+\fB\-y[4|6]\fR, \fB\-\-view-port [4|6]\fR
+display active connections to the server including the port #, combine
+with 4 or 6 to define the ip version.
 .TP
 \fB\-k\fR, \fB\-\-kill\fR <NUMBER_OF_CONNECTIONS>
 block ip's making \fINUMBER_OF_CONNECTIONS\fR or more

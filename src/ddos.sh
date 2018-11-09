@@ -45,17 +45,17 @@ showhelp()
     echo 'N : number of tcp/udp connections (default '"$NO_OF_CONNECTIONS"')'
     echo
     echo 'OPTIONS:'
-    echo '-h | --help: Show this help screen'
-    echo '-c | --cron: Create cron job to run this script regularly (default 1 mins)'
-    echo '-i | --ignore-list: List whitelisted ip addresses'
-    echo '-b | --bans-list: List currently banned ip addresses.'
-    echo '-u | --unban: Unbans a given ip address.'
-    echo '-d | --start: Initialize a daemon to monitor connections'
-    echo '-s | --stop: Stop the daemon'
-    echo '-t | --status: Show status of daemon and pid if currently running'
-    echo '-v | --view: Display active connections to the server'
-    echo '-y | --view-port: Display active connections to the server including the port'
-    echo '-k | --kill: Block all ip addresses making more than N connections'
+    echo '-h      | --help: Show this help screen'
+    echo '-c      | --cron: Create cron job to run this script regularly (default 1 mins)'
+    echo '-i      | --ignore-list: List whitelisted ip addresses'
+    echo '-b      | --bans-list: List currently banned ip addresses.'
+    echo '-u      | --unban: Unbans a given ip address.'
+    echo '-d      | --start: Initialize a daemon to monitor connections'
+    echo '-s      | --stop: Stop the daemon'
+    echo '-t      | --status: Show status of daemon and pid if currently running'
+    echo '-v[4|6] | --view [4|6]: Display active connections to the server'
+    echo '-y[4|6] | --view-port [4|6]: Display active connections to the server including the port'
+    echo '-k      | --kill: Block all ip addresses making more than N connections'
 }
 
 # Check if super user is executing the

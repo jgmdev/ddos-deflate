@@ -149,9 +149,13 @@ When running the script as a cronjob no restarting is required.
 
    Show status of daemon and pid if currently running.
 
-**-v | --view:**
+**-v[4|6] | --view [4|6]:**
 
    Display active connections to the server.
+
+**-y[4|6] | --view-port [4|6]:**
+
+   Display active connections to the server including the port.
 
 **-k | --kill:**
 
