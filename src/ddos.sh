@@ -359,7 +359,7 @@ check_connections()
         CURR_LINE_CONN=$(echo "$line" | cut -d" " -f1)
         CURR_LINE_IP=$(echo "$line" | cut -d" " -f2)
 
-        echo "$CURR_LINE_IP" | grepcidr -e "$IGNORE_IP" > /dev/null && continue || IP_BAN_NOW=1
+        echo "$CURR_LINE_IP" | grepcidr -e "$IGNORE_IP">/dev/null && continue || IP_BAN_NOW=1
 
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> "$BANNED_IP_MAIL"
         echo "$CURR_LINE_IP" >> "$BANNED_IP_LIST"
