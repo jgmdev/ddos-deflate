@@ -312,7 +312,7 @@ ban_only_incoming()
             print $0;
         }
     }
-    ' "$ALL_SERVER_IP" "ALL_SERVER_IP6" "$ALL_LISTENING" > "$ALL_LISTENING_FULL"
+    ' "$ALL_SERVER_IP" "$ALL_SERVER_IP6" "$ALL_LISTENING" > "$ALL_LISTENING_FULL"
 
     # Only keep connections which are connected to local listening service
     awk 'NR==FNR{a[$1];next} $1 in a {print $2}' "$ALL_LISTENING_FULL" "$ALL_CONNS" | \
