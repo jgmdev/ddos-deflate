@@ -1,7 +1,7 @@
 Changes Log
 ==========================================================================
 
-Version 1.1 - Date 09/11/2018
+Version 1.1 - Date 11/11/2018
 
   * Fixed syntax error introduced in 1.0 thanks to @MarcelFox
   * Fixed issue #36 (cron file created incorrectly).
