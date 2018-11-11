@@ -147,6 +147,16 @@ Connection states separated by colon operator (:) to block. See:
 .B ss(1).
 (Default: "connected")
 
+.TP
+.B BAN_PERIOD = <number>
+Number of seconds the banned ip should remain in blacklist. (Default: 600)
+
+.TP
+ONLY_INCOMING = <false|true>
+Only count incoming connections to listening services, which will
+prevent the server from banning multiple outgoing connections to
+a single ip address. (Default: false)
+
 .SH FILES
 .B /usr/local/ddos/LICENSE
 .br

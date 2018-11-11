@@ -17,7 +17,29 @@ CONF_PATH="${CONF_PATH}/"
 
 # Other variables
 BANS_IP_LIST="/var/lib/ddos/bans.list"
-SERVER_IP_LIST=$(ifconfig | grep -E "inet6? " | sed "s/addr: /addr:/g" | awk '{print $2}' | sed -E "s/addr://g" | sed -E "s/\\/[0-9]+//g" | xargs | sed -e 's/ /|/g')
+SERVER_IP_LIST=$(ifconfig | \
+    grep -E "inet6? " | \
+    sed "s/addr: /addr:/g" | \
+    awk '{print $2}' | \
+    sed -E "s/addr://g" | \
+    sed -E "s/\\/[0-9]+//g"
+)
+SERVER_IP4_LIST=$(ifconfig | \
+    grep -E "inet " | \
+    sed "s/addr: /addr:/g" | \
+    awk '{print $2}' | \
+    sed -E "s/addr://g" | \
+    sed -E "s/\\/[0-9]+//g" | \
+    grep -v "127.0.0.1"
+)
+SERVER_IP6_LIST=$(ifconfig | \
+    grep -E "inet6 " | \
+    sed "s/addr: /addr:/g" | \
+    awk '{print $2}' | \
+    sed -E "s/addr://g" | \
+    sed -E "s/\\/[0-9]+//g" | \
+    grep -v "::1"
+)
 
 load_conf()
 {
@@ -220,96 +242,100 @@ add_to_cron()
 
 ban_incoming_and_outgoing()
 {
-    # Find all ipv4 connections
-    ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
-        # Extract only the fifth column
+    whitelist=$(ignore_list "1")
+
+    # Find all connections
+    ss -Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+        # Extract the client ip
         awk '{print $6}' | \
-        # Strip port
-        cut -d":" -f1 | \
-        # Ignore Server IP
-        sed -r "/^($SERVER_IP_LIST)$/Id" | \
+        # Strip port and [ ] brackets
+        sed -E "s/\\[//g; s/\\]//g; s/:[0-9]+$//g" | \
+        # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
+        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
         uniq -c | \
-        # Numerical sort in reverse order
+        # sort by number of connections
         sort -nr | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
-        "$1"
-
-    # Find all ipv6 connections
-    ss -6Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
-        # Extract only the fifth column
-        awk '{print $6}' | \
-        # Strip port and leading [
-        sed -E "s/]:[0-9]+//g" | sed "s/\\[//g" | \
-        # Ignore Server IP
-        sed -r "/^($SERVER_IP_LIST)$/Id" | \
-        # Sort addresses for uniq to work correctly
-        sort | \
-        # Group same occurrences of ip and prepend amount of occurences found
-        uniq -c | \
-        # Numerical sort in reverse order
-        sort -nr | \
-        # Only store connections that exceed max allowed
-        awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" >> \
         "$1"
 }
 
 ban_only_incoming()
 {
+    whitelist=$(ignore_list "1")
+
     ALL_LISTENING=$(mktemp "$TMP_PREFIX".XXXXXXXX)
+    ALL_LISTENING_FULL=$(mktemp "$TMP_PREFIX".XXXXXXXX)
     ALL_CONNS=$(mktemp "$TMP_PREFIX".XXXXXXXX)
+    ALL_SERVER_IP=$(mktemp "$TMP_PREFIX".XXXXXXXX)
+    ALL_SERVER_IP6=$(mktemp "$TMP_PREFIX".XXXXXXXX)
 
     # Find all connections
-    netstat -an | \
-        # Match only the given connection states
-        grep -E "$CONN_STATES" | \
+    ss -Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
         # Extract both local and foreign address:port
-        awk '{print $4" "$5;}'> \
+        awk '{print $5" "$6;}' > \
         "$ALL_CONNS"
 
-    # Find all connections
-    netstat -an | \
+    # Find listening connections
+    ss -Hntu state listening | \
         # Only keep local address:port
-        awk '{print $4}' | \
-        # Also include specific server address when address is 0.0.0.0 (only ipv4)
-        awk -v host_ip="$HOST_IP" \
-        '{ ip_pos = index($0, "0.0.0.0");
-            if (ip_pos != 0) {
-                port_pos = index($0, ":");
-                print $0;
-                print host_ip substr($0, port_pos);
-            } else {
-                print $0;
-            }
-        }' > \
+        awk '{print $4}' > \
         "$ALL_LISTENING"
 
-    # Only keep connections which are connected to local listening address:port but print foreign address:port
-    # ipv6 is always included
-    awk 'NR==FNR{a[$1];next} $1 in a {print $2}' "$ALL_LISTENING" "$ALL_CONNS" | \
-        # Strip port without affecting ipv4 addresses
-        sed -r 's/^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})(:|\.)[0-9+]*$/\1.\2.\3.\4/' | \
-        # Strip port without affecting ipv6 addresses (experimental)
-        sed "s/:[0-9+]*$//g" | \
-        # Ignore Server IP
-        sed -r "/^($SERVER_IP_LIST)$/Id" | \
+    # Also append all server addresses when address is 0.0.0.0 or [::]
+    echo "$SERVER_IP4_LIST" > "$ALL_SERVER_IP"
+    echo "$SERVER_IP6_LIST" > "$ALL_SERVER_IP6"
+
+    awk '
+    FNR == 1 { ++fIndex }
+    fIndex == 1{ip_list[$1];next}
+    fIndex == 2{ip6_list[$1];next}
+    {
+        ip_pos = index($0, "0.0.0.0");
+        ip6_pos = index($0, "[::]");
+        if (ip_pos != 0) {
+            port_pos = index($0, ":");
+            print $0;
+            for (ip in ip_list){
+                print ip substr($0, port_pos);
+            }
+        } else if (ip6_pos != 0) {
+            port_pos = index($0, "]:");
+            print $0;
+            for (ip in ip6_list){
+                print "[" ip substr($0, port_pos);
+            }
+        } else {
+            print $0;
+        }
+    }
+    ' "$ALL_SERVER_IP" "ALL_SERVER_IP6" "$ALL_LISTENING" > "$ALL_LISTENING_FULL"
+
+    # Only keep connections which are connected to local listening service
+    awk 'NR==FNR{a[$1];next} $1 in a {print $2}' "$ALL_LISTENING_FULL" "$ALL_CONNS" | \
+        # Strip port and [ ] brackets
+        sed -E "s/\\[//g; s/\\]//g; s/:[0-9]+$//g" | \
+        # Only leave non whitelisted, we add ::1 to ensure -v works
+        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
         uniq -c | \
         # Numerical sort in reverse order
         sort -nr | \
-        # Replace ::fff: String on ip
-        sed 's/::ffff://g' | \
         # Only store connections that exceed max allowed
         awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > \
         "$1"
 
+    # remove temp files
     rm "$ALL_LISTENING"
+    rm "$ALL_LISTENING_FULL"
     rm "$ALL_CONNS"
+    rm "$ALL_SERVER_IP"
+    rm "$ALL_SERVER_IP6"
 }
 
 # Check active connections and ban if neccessary.
@@ -353,13 +379,11 @@ check_connections()
 
     IP_BAN_NOW=0
 
-    IGNORE_IP=$(ignore_list "1")
-
     while read line; do
         CURR_LINE_CONN=$(echo "$line" | cut -d" " -f1)
         CURR_LINE_IP=$(echo "$line" | cut -d" " -f2)
 
-        echo "$CURR_LINE_IP" | grepcidr -e "$IGNORE_IP">/dev/null && continue || IP_BAN_NOW=1
+        IP_BAN_NOW=1
 
         echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> "$BANNED_IP_MAIL"
         echo "$CURR_LINE_IP" >> "$BANNED_IP_LIST"
@@ -409,6 +433,8 @@ view_connections()
         ip4_show=true
     fi
 
+    whitelist=$(ignore_list "1")
+
     # Find all ipv4 connections
     if $ip4_show; then
         ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
@@ -416,10 +442,10 @@ view_connections()
             awk '{print $6}' | \
             # Strip port
             cut -d":" -f1 | \
-            # Ignore Server IP
-            sed -r "/^($SERVER_IP_LIST)$/Id" | \
             # Sort addresses for uniq to work correctly
             sort | \
+            # Only leave non whitelisted
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist" | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
@@ -433,10 +459,10 @@ view_connections()
             awk '{print $6}' | \
             # Strip port and leading [
             sed -E "s/]:[0-9]+//g" | sed "s/\\[//g" | \
-            # Ignore Server IP
-            sed -r "/^($SERVER_IP_LIST)$/Id" | \
             # Sort addresses for uniq to work correctly
             sort | \
+            # Only leave non whitelisted, we add ::1 to ensure -v works
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
@@ -459,15 +485,17 @@ view_connections_port()
         ip4_show=true
     fi
 
+    whitelist=$(ignore_list "1")
+
     # Find all ipv4 connections
     if $ip4_show; then
         ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
             # Extract only the fifth column
             awk '{print $6}' | \
-            # Ignore Server IP
-            sed -r "/^($SERVER_IP_LIST)$/Id" | \
             # Sort addresses for uniq to work correctly
             sort | \
+            # Only leave non whitelisted
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist" | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
@@ -481,10 +509,10 @@ view_connections_port()
             awk '{print $6}' | \
             # Strip leading [ and ending ]
             sed -E "s/(\\[|\\])//g" | \
-            # Ignore Server IP
-            sed -r "/^($SERVER_IP_LIST)$/Id" | \
             # Sort addresses for uniq to work correctly
             sort | \
+            # Only leave non whitelisted, we add ::1 to ensure -v works
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
@@ -506,7 +534,7 @@ on_daemon_exit()
 daemon_pid()
 {
     if [ -e "/var/run/ddos.pid" ]; then
-        echo "$(cat /var/run/ddos.pid)"
+        echo $(cat /var/run/ddos.pid)
 
         return
     fi
@@ -664,19 +692,19 @@ view_ports()
     printf "Port blocking is: "
 
     if $ENABLE_PORTS; then
-        prinft "enabled\n"
+        printf "enabled\\n"
     else
-        printf "disabled\n"
+        printf "disabled\\n"
     fi
 
     printf -- '-%.0s' $(seq 48); echo ""
-    printf "% -15s % -15s % -15s\n" "Port" "Max-Conn" "Ban-Time"
+    printf "% -15s % -15s % -15s\\n" "Port" "Max-Conn" "Ban-Time"
     printf -- '-%.0s' $(seq 48); echo ""
     for port in $(echo "$PORT_MAX_CONNECTIONS" | xargs); do
         number=$(echo "$port" | cut -d":" -f1)
         max_conn=$(echo "$port" | cut -d":" -f2)
         ban_time=$(echo "$port" | cut -d":" -f3)
-        printf "% -15s % -15s % -15s\n" $number $max_conn $ban_time
+        printf "% -15s % -15s % -15s\\n" $number $max_conn $ban_time
     done
 }
 
@@ -701,7 +729,6 @@ EMAIL_TO="root"
 BAN_PERIOD=600
 CONN_STATES="connected"
 ONLY_INCOMING=false
-HOST_IP="0.0.0.0"
 
 # Load custom settings
 load_conf

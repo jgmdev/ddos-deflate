@@ -7,10 +7,15 @@ Version 1.1 - Date 09/11/2018
   * Fixed issue #36 (cron file created incorrectly).
   * Added cron job deprecation warning, daemon mode should be used instead.
   * Fixed many issues reported by shellcheck.
-  * Added IPv6 support to ban_incoming_and_outgoing
-    (ban_only_incoming should be next).
+  * Added IPv6 support
   * Use ss instead of netstat.
   * started some drafting to add blocking by port support.
+  * Improved ban_incoming_only
+  * Eliminate some command steps to improve performance.
+  * Removed HOST_IP since it is no longer necessary.
+  * Fixed improper call to grepcidr.
+  * Minor man page changes.
+  * Added ip6tables to dependencies list and removed netstat.
 
 Version 1.0 - Date 06/11/2018
 
