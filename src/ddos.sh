@@ -251,7 +251,7 @@ ban_incoming_and_outgoing()
         # Strip port and [ ] brackets
         sed -E "s/\\[//g; s/\\]//g; s/:[0-9]+$//g" | \
         # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
-        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
+        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
@@ -319,7 +319,7 @@ ban_only_incoming()
         # Strip port and [ ] brackets
         sed -E "s/\\[//g; s/\\]//g; s/:[0-9]+$//g" | \
         # Only leave non whitelisted, we add ::1 to ensure -v works
-        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
+        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
         # Sort addresses for uniq to work correctly
         sort | \
         # Group same occurrences of ip and prepend amount of occurences found
@@ -447,7 +447,7 @@ view_connections()
             # Sort addresses for uniq to work correctly
             sort | \
             # Only leave non whitelisted
-            grepcidr -v -e "$SERVER_IP_LIST $whitelist" | \
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist" 2>/dev/null | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
@@ -464,7 +464,7 @@ view_connections()
             # Sort addresses for uniq to work correctly
             sort | \
             # Only leave non whitelisted, we add ::1 to ensure -v works
-            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
@@ -499,7 +499,7 @@ view_connections_port()
             # Sort addresses for uniq to work correctly
             sort | \
             # Only leave non whitelisted
-            grepcidr -v -e "$SERVER_IP_LIST $whitelist" | \
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist" 2>/dev/null | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
@@ -516,7 +516,7 @@ view_connections_port()
             # Sort addresses for uniq to work correctly
             sort | \
             # Only leave non whitelisted, we add ::1 to ensure -v works
-            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" | \
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
             # Group same occurrences of ip and prepend amount of occurences found
             uniq -c | \
             # Numerical sort in reverse order
