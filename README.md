@@ -25,6 +25,7 @@ ipfw, iptables, or Advanced Policy Firewall (APF).
 
 ### Notable Features
 
+* IPv6 support.
 * It is possible to whitelist IP addresses, via /etc/ddos/ignore.ip.list.
 * It is possible to whitelist hostnames, via /etc/ddos/ignore.host.list.
 * IP ranges and CIDR syntax is supported on /etc/ddos/ignore.ip.list
