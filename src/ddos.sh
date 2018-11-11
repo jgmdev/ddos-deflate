@@ -438,6 +438,8 @@ view_connections()
     # Find all ipv4 connections
     if $ip4_show; then
         ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+            # Fix possible bug with ss
+            sed 's/tcp/tcp /g' | \
             # Extract only the fifth column
             awk '{print $6}' | \
             # Strip port
@@ -490,6 +492,8 @@ view_connections_port()
     # Find all ipv4 connections
     if $ip4_show; then
         ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+            # Fix possible bug with ss
+            sed 's/tcp/tcp /g' | \
             # Extract only the fifth column
             awk '{print $6}' | \
             # Sort addresses for uniq to work correctly
