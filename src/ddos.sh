@@ -524,6 +524,26 @@ view_connections_port()
     fi
 }
 
+view_bans()
+{
+    echo "List of currently banned ip's."
+    echo "==================================="
+
+    if [ -e "$BANS_IP_LIST" ]; then
+        printf "% -5s %s\\n" "Exp." "IP"
+        echo '-----------------------------------'
+        while read line; do
+            time=$(echo "$line" | cut -d" " -f1)
+            ip=$(echo "$line" | cut -d" " -f2)
+            current_time=$(date +"%s")
+            hours=$(echo $(((time-current_time)/60/60)))
+            minutes=$(echo $(((time-current_time)/60%60)))
+
+            echo "$(printf "%02d" "$hours"):$(printf "%02d" "$minutes") $ip"
+        done < "$BANS_IP_LIST"
+    fi
+}
+
 # Executed as a cleanup function when the daemon is stopped
 on_daemon_exit()
 {
@@ -761,11 +781,7 @@ while [ "$1" ]; do
             exit
             ;;
         '--bans-list' | '-b' )
-            echo "List of currently banned ip's."
-            echo "==================================="
-            if [ -e "${BANS_IP_LIST}" ]; then
-                cat "${BANS_IP_LIST}"
-            fi
+            view_bans
             exit
             ;;
         '--unban' | '-u' )
