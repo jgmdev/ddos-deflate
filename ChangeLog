@@ -1,6 +1,11 @@
 Changes Log
 ==========================================================================
 
+Version 1.2 - Date 13/11/2018
+
+  * Initial implementation of banning by port
+  * Print remaining time on bans list.
+
 Version 1.1 - Date 11/11/2018
 
   * Fixed syntax error introduced in 1.0 thanks to @MarcelFox

@@ -47,13 +47,13 @@ load_conf()
     if [ -f "$CONF" ] && [ -n "$CONF" ]; then
         . $CONF
     else
-        head
+        ddos_head
         echo "\$CONF not found."
         exit 1
     fi
 }
 
-head()
+ddos_head()
 {
     echo "DDoS-Deflate version 1.1"
     echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
@@ -62,7 +62,7 @@ head()
 
 showhelp()
 {
-    head
+    ddos_head
     echo 'Usage: ddos [OPTIONS] [N]'
     echo 'N : number of tcp/udp connections (default '"$NO_OF_CONNECTIONS"')'
     echo
@@ -120,11 +120,6 @@ ignore_list()
             done
         fi
     done
-
-    # Get ip's of ethernet interfaces to prevent blocking it self.
-    #for iface_ip in $(ifconfig | grep "inet " | awk '{print $2}' | sed "s/addr://g"); do
-    #    echo $iface_ip
-    #done
 
     grep -v "#" "${CONF_PATH}${IGNORE_IP_LIST}"
 
@@ -240,6 +235,9 @@ add_to_cron()
     log_msg "added cron job"
 }
 
+# Count incoming and outgoing connections and stores those that exceed
+# max allowed on a given file.
+# param1 File used to store the list of ip addresses as: conn_count ip
 ban_incoming_and_outgoing()
 {
     whitelist=$(ignore_list "1")
@@ -263,6 +261,9 @@ ban_incoming_and_outgoing()
         "$1"
 }
 
+# Count incoming connections only and stores those that exceed
+# max allowed on a given file.
+# param1 File used to store the list of ip addresses as: conn_count ip
 ban_only_incoming()
 {
     whitelist=$(ignore_list "1")
@@ -331,11 +332,145 @@ ban_only_incoming()
         "$1"
 
     # remove temp files
-    rm "$ALL_LISTENING"
-    rm "$ALL_LISTENING_FULL"
-    rm "$ALL_CONNS"
-    rm "$ALL_SERVER_IP"
-    rm "$ALL_SERVER_IP6"
+    rm "$ALL_LISTENING" "$ALL_LISTENING_FULL" "$ALL_CONNS" \
+        "$ALL_SERVER_IP" "$ALL_SERVER_IP6"
+}
+
+# Count incoming connections only and stores those that exceed
+# max allowed on a given file.
+# param1 File used to store the list of ip addresses as: conn_count ip port ban_time
+ban_by_port()
+{
+    whitelist=$(ignore_list "1")
+
+    ip_all_list=$(ss -Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g'))
+
+    ip_port_list=$(mktemp "$TMP_PREFIX".XXXXXXXX)
+    ip_only_list=$(mktemp "$TMP_PREFIX".XXXXXXXX)
+
+    # Save all connections with port
+    echo "$ip_all_list" | \
+        # Extract client ip and server port client is connected to
+        awk '{
+            # Port of server the client connected to
+            match($5, /:[0-9]+$/);
+            # Strip port from client ip
+            gsub(/:[0-9]+$/, "", $6);
+            # Print client ip and server port
+            print $6 " " substr($5, RSTART+1, RLENGTH)
+        }' | \
+        # Strip ipv6 brackets [ ]
+        sed -E "s/\\[//g; s/\\]//g;" | \
+        # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
+        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
+        # Sort addresses for uniq to work correctly
+        sort | \
+        # Group same occurrences of ip port and prepend amount of occurences found
+        uniq -c | \
+        # sort by number of connections
+        sort -nr > \
+        "$ip_port_list"
+
+    # Save all connections without port
+    echo "$ip_all_list" | \
+        # Extract the client ip
+        awk '{print $6}' | \
+        # Strip port and [ ] brackets
+        sed -E "s/\\[//g; s/\\]//g; s/:[0-9]+$//g" | \
+        # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
+        grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
+        # Sort addresses for uniq to work correctly
+        sort | \
+        # Group same occurrences of ip and prepend amount of occurences found
+        uniq -c | \
+        # sort by number of connections
+        sort -nr > \
+        "$ip_only_list"
+
+    unset ip_all_list
+
+    # Analyze all connections by port
+    for port in $(echo "$PORT_MAX_CONNECTIONS" | xargs); do
+        number=$(echo "$port" | cut -d":" -f1)
+        max_conn=$(echo "$port" | cut -d":" -f2)
+        ban_time=$(echo "$port" | cut -d":" -f3)
+
+        # Handle port ranges eg: 2000-2010
+        if echo "$number" | grep "-">/dev/null; then
+            number_start=$(echo "$number" | cut -d"-" -f1)
+            number_end=$(echo "$number" | cut -d"-" -f2)
+
+            awk -v pstart="$number_start" -v pend="$number_end" \
+                -v mconn="$max_conn" -v btime="$ban_time" \
+                -v mgconn="$NO_OF_CONNECTIONS" '
+                FNR == 1 { ++fIndex }
+                fIndex == 1 {
+                    # Match only ports in range
+                    if ($3 >= pstart && $3 <= $pend) {
+                        # store amount of connections for the ip
+                        ip_port_list[$2]+=$1;
+                    }
+                    next
+                }
+                fIndex == 2 {
+                    # store global amount of connections per ip
+                    ip_all_list[$2]=$1;
+                    next
+                }
+                END {
+                    # Print all ip addresses that should be ban
+                    for (ip in ip_port_list) {
+                        if(
+                            ip_port_list[ip] >= mconn
+                            ||
+                            (
+                                ip_all_list[ip] > ip_port_list[ip]
+                                &&
+                                ip_all_list[ip] >= mgconn
+                            )
+                        ) {
+                            print ip_port_list[ip] " " ip " " pstart "-" pstart " " btime
+                        }
+                    }
+                }' "$ip_port_list" "$ip_only_list" >> "$1"
+        # Handle specific ports eg: 80
+        else
+            awk -v portn="$number" -v mconn="$max_conn" \
+                -v btime="$ban_time" -v mgconn="$NO_OF_CONNECTIONS" '
+                FNR == 1 { ++fIndex }
+                fIndex == 1 {
+                    # Match only exact port
+                    if ($3 == portn) {
+                        # store amount of connections for the ip
+                        ip_port_list[$2]=$1;
+                    }
+                    next
+                }
+                fIndex == 2 {
+                    # store global amount of connections per ip
+                    ip_all_list[$2]=$1;
+                    next
+                }
+                END {
+                    # Print all ip addresses that should be ban
+                    for (ip in ip_port_list) {
+                        if(
+                            ip_port_list[ip] >= mconn
+                            ||
+                            (
+                                ip_all_list[ip] > ip_port_list[ip]
+                                &&
+                                ip_all_list[ip] >= mgconn
+                            )
+                        ) {
+                            print ip_port_list[ip] " " ip " " portn " " btime
+                        }
+                    }
+                }' "$ip_port_list" "$ip_only_list" >> "$1"
+        fi
+    done
+
+    rm "$ip_port_list" "$ip_only_list"
 }
 
 # Check active connections and ban if neccessary.
@@ -347,7 +482,9 @@ check_connections()
     TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
     BAD_IP_LIST=$($TMP_FILE)
 
-    if $ONLY_INCOMING; then
+    if $ENABLE_PORTS; then
+        ban_by_port "$BAD_IP_LIST"
+    elif $ONLY_INCOMING; then
         ban_only_incoming "$BAD_IP_LIST"
     else
         ban_incoming_and_outgoing "$BAD_IP_LIST"
@@ -379,17 +516,33 @@ check_connections()
 
     IP_BAN_NOW=0
 
+    FIELDS_COUNT=$(head -n1 "$BAD_IP_LIST" | xargs | sed "s/ /\\n/g" | wc -l)
+
     while read line; do
+        BAN_TOTAL="$BAN_PERIOD"
+
         CURR_LINE_CONN=$(echo "$line" | cut -d" " -f1)
         CURR_LINE_IP=$(echo "$line" | cut -d" " -f2)
 
+        if [ "$FIELDS_COUNT" -gt 2 ]; then
+            CURR_LINE_PORT=$(echo "$line" | cut -d" " -f3)
+            BAN_TOTAL=$(echo "$line" | cut -d" " -f4)
+        else
+            CURR_LINE_PORT=""
+        fi
+
+        if [ "$CURR_LINE_PORT" != "" ]; then
+            CURR_PORT=":$CURR_LINE_PORT"
+        fi
+
         IP_BAN_NOW=1
 
-        echo "$CURR_LINE_IP with $CURR_LINE_CONN connections" >> "$BANNED_IP_MAIL"
-        echo "$CURR_LINE_IP" >> "$BANNED_IP_LIST"
+        echo "${CURR_LINE_IP}${CURR_PORT} with $CURR_LINE_CONN connections" >> "$BANNED_IP_MAIL"
+        echo "${CURR_LINE_IP}${CURR_PORT}" >> "$BANNED_IP_LIST"
 
         current_time=$(date +"%s")
-        echo "$((current_time+BAN_PERIOD)) ${CURR_LINE_IP} ${CURR_LINE_CONN}" >> "${BANS_IP_LIST}"
+        echo "$((current_time+BAN_TOTAL)) ${CURR_LINE_IP} ${CURR_LINE_CONN} ${CURR_LINE_PORT}" >> \
+            "${BANS_IP_LIST}"
 
         # execute tcpkill for 60 seconds
         timeout -k 60 -s 9 60 \
@@ -397,7 +550,7 @@ check_connections()
 
         ban_ip "$CURR_LINE_IP"
 
-        log_msg "banned $CURR_LINE_IP with $CURR_LINE_CONN connections for ban period $BAN_PERIOD"
+        log_msg "banned ${CURR_LINE_IP}${CURR_PORT} with $CURR_LINE_CONN connections for ban period $BAN_TOTAL"
     done < "$BAD_IP_LIST"
 
     if [ "$IP_BAN_NOW" -eq 1 ]; then
@@ -535,11 +688,14 @@ view_bans()
         while read line; do
             time=$(echo "$line" | cut -d" " -f1)
             ip=$(echo "$line" | cut -d" " -f2)
+            conns=$(echo "$line" | cut -d" " -f3)
+            port=$(echo "$line" | cut -d" " -f4)
+
             current_time=$(date +"%s")
             hours=$(echo $(((time-current_time)/60/60)))
             minutes=$(echo $(((time-current_time)/60%60)))
 
-            echo "$(printf "%02d" "$hours"):$(printf "%02d" "$minutes") $ip"
+            echo "$(printf "%02d" "$hours"):$(printf "%02d" "$minutes") $ip $port $conns"
         done < "$BANS_IP_LIST"
     fi
 }
@@ -728,7 +884,7 @@ view_ports()
         number=$(echo "$port" | cut -d":" -f1)
         max_conn=$(echo "$port" | cut -d":" -f2)
         ban_time=$(echo "$port" | cut -d":" -f3)
-        printf "% -15s % -15s % -15s\\n" $number $max_conn $ban_time
+        printf "% -15s % -15s % -15s\\n" "$number" "$max_conn" "$ban_time"
     done
 }
 
@@ -849,7 +1005,7 @@ while [ "$1" ]; do
             su_required
             KILL=1
             ;;
-         *[0-9]* )
+        *[0-9]* )
             NO_OF_CONNECTIONS=$1
             ;;
         * )
