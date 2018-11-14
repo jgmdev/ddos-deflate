@@ -113,6 +113,16 @@ dynamic-ip.somehost.com
 You can modify the script settings by editing /etc/ddos/ddos.conf
 
 .TP
+.B FIREWALL = '<value>'
+The firewall to use for blocking/unblocking, valid values are:
+auto, apf, csf, ipfw and iptables. (Default: "auto")
+
+.TP
+.B EMAIL_TO = '<email>'
+An email is sent to the following address when an IP is banned.
+Leaving this value empty would suppress sending of mails. (Default: root)
+
+.TP
 .B FREQ = <number>
 Frequency in minutes for running the script. Every time this setting is
 changed, run the script with --cron option so that the new frequency
@@ -128,16 +138,6 @@ in daemon mode. (Default: 5)
 How many connections define a bad IP? Indicate that below. (Default: 150)
 
 .TP
-.B FIREWALL = '<value>'
-The firewall to use for blocking/unblocking, valid values are:
-auto, apf, csf and iptables. (Default: "auto")
-
-.TP
-.B EMAIL_TO = '<email>'
-An email is sent to the following address when an IP is banned.
-Leaving this value empty would suppress sending of mails. (Default: root)
-
-.TP
 .B BAN_PERIOD = <number>
 Number of seconds the banned ip should remain in blacklist. (Default: 600)
 
@@ -148,14 +148,24 @@ Connection states separated by colon operator (:) to block. See:
 (Default: "connected")
 
 .TP
-.B BAN_PERIOD = <number>
-Number of seconds the banned ip should remain in blacklist. (Default: 600)
-
-.TP
-ONLY_INCOMING = <false|true>
+.B ONLY_INCOMING = <false|true>
 Only count incoming connections to listening services, which will
 prevent the server from banning multiple outgoing connections to
-a single ip address. (Default: false)
+a single ip address. Slower than default in/out method.
+(Default: false)
+
+.TP
+.B ENABLE_PORTS = <false|true>
+This option enables the usage of PORT_CONNECTIONS and overrides the
+ONLY_INCOMING option. Slower than ONLY_INCOMING method.
+(Default: false)
+
+.TP
+.B PORT_CONNECTIONS = '<from_port[-to_port]>:<max_conn>:<ban_period> ...'
+Maximum amount of connections per port before blocking. If a user
+is making all its connections to a single port the max connections
+specified for the port will take precedence over the global amount of
+NO_OF_CONNECTIONS value. Example: "80:150:600 443:150:600 20-21:250:600"
 
 .SH FILES
 .B /usr/local/ddos/LICENSE

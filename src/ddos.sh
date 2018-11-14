@@ -390,7 +390,7 @@ ban_by_port()
     unset ip_all_list
 
     # Analyze all connections by port
-    for port in $(echo "$PORT_MAX_CONNECTIONS" | xargs); do
+    for port in $(echo "$PORT_CONNECTIONS" | xargs); do
         number=$(echo "$port" | cut -d":" -f1)
         max_conn=$(echo "$port" | cut -d":" -f2)
         ban_time=$(echo "$port" | cut -d":" -f3)
@@ -880,7 +880,7 @@ view_ports()
     printf -- '-%.0s' $(seq 48); echo ""
     printf "% -15s % -15s % -15s\\n" "Port" "Max-Conn" "Ban-Time"
     printf -- '-%.0s' $(seq 48); echo ""
-    for port in $(echo "$PORT_MAX_CONNECTIONS" | xargs); do
+    for port in $(echo "$PORT_CONNECTIONS" | xargs); do
         number=$(echo "$port" | cut -d":" -f1)
         max_conn=$(echo "$port" | cut -d":" -f2)
         ban_time=$(echo "$port" | cut -d":" -f3)
@@ -903,7 +903,7 @@ FREQ=1
 DAEMON_FREQ=5
 NO_OF_CONNECTIONS=150
 ENABLE_PORTS=false
-PORT_MAX_CONNECTIONS="80:150:600 443:150:600"
+PORT_CONNECTIONS="80:150:600 443:150:600"
 FIREWALL="auto"
 EMAIL_TO="root"
 BAN_PERIOD=600
