@@ -336,8 +336,8 @@ ban_only_incoming()
         "$ALL_SERVER_IP" "$ALL_SERVER_IP6"
 }
 
-# Count incoming connections only and stores those that exceed
-# max allowed on a given file.
+# Count incoming connections on specific ports and stores those
+# that exceed max allowed on a given file.
 # param1 File used to store the list of ip addresses as: conn_count ip port ban_time
 ban_by_port()
 {
