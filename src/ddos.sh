@@ -55,7 +55,7 @@ load_conf()
 
 ddos_head()
 {
-    echo "DDoS-Deflate version 1.1"
+    echo "DDoS-Deflate version 1.2"
     echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
@@ -406,7 +406,7 @@ ban_by_port()
                 FNR == 1 { ++fIndex }
                 fIndex == 1 {
                     # Match only ports in range
-                    if ($3 >= pstart && $3 <= $pend) {
+                    if ($3 >= pstart && $3 <= pend) {
                         # store amount of connections for the ip
                         ip_port_list[$2]+=$1;
                     }
@@ -420,16 +420,8 @@ ban_by_port()
                 END {
                     # Print all ip addresses that should be ban
                     for (ip in ip_port_list) {
-                        if(
-                            ip_port_list[ip] >= mconn
-                            ||
-                            (
-                                ip_all_list[ip] > ip_port_list[ip]
-                                &&
-                                ip_all_list[ip] >= mgconn
-                            )
-                        ) {
-                            print ip_port_list[ip] " " ip " " pstart "-" pstart " " btime
+                        if(ip_port_list[ip] >= mconn || (ip_all_list[ip] > ip_port_list[ip] && ip_all_list[ip] >= mgconn)) {
+                            print ip_port_list[ip] " " ip " " pstart "-" pend " " btime;
                         }
                     }
                 }' "$ip_port_list" "$ip_only_list" >> "$1"
@@ -454,16 +446,8 @@ ban_by_port()
                 END {
                     # Print all ip addresses that should be ban
                     for (ip in ip_port_list) {
-                        if(
-                            ip_port_list[ip] >= mconn
-                            ||
-                            (
-                                ip_all_list[ip] > ip_port_list[ip]
-                                &&
-                                ip_all_list[ip] >= mgconn
-                            )
-                        ) {
-                            print ip_port_list[ip] " " ip " " portn " " btime
+                        if(ip_port_list[ip] >= mconn || (ip_all_list[ip] > ip_port_list[ip] && ip_all_list[ip] >= mgconn)) {
+                            print ip_port_list[ip] " " ip " " portn " " btime;
                         }
                     }
                 }' "$ip_port_list" "$ip_only_list" >> "$1"
