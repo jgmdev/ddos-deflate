@@ -41,6 +41,12 @@ SERVER_IP6_LIST=$(ifconfig | \
     grep -v "::1"
 )
 
+SS_MISSING=false
+
+if ! which ss>/dev/null; then
+    SS_MISSING=true
+fi
+
 load_conf()
 {
     CONF="${CONF_PATH}ddos.conf"
@@ -146,7 +152,13 @@ ban_ip()
             $IPT -I INPUT -s "$1" -j DROP
         fi
     else
-        ip6tables -I INPUT -s "$1" -j DROP
+        if [ "$FIREWALL" = "ipfw" ]; then
+            rule_number=$(ipfw list | tail -1 | awk '/deny/{print $1}')
+            next_number=$((rule_number + 1))
+            $IPF -q add "$next_number" deny all from "$1" to any
+        else
+            $IPT6 -I INPUT -s "$1" -j DROP
+        fi
     fi
 }
 
@@ -171,7 +183,12 @@ unban_ip()
             $IPT -D INPUT -s "$1" -j DROP
         fi
     else
-        ip6tables -D INPUT -s "$1" -j DROP
+        if [ "$FIREWALL" = "ipfw" ]; then
+            rule_number=$($IPF list | awk "/$1/{print $1}")
+            $IPF -q delete "$rule_number"
+        else
+            $IPT6 -D INPUT -s "$1" -j DROP
+        fi
     fi
 
     if [ "$2" != "" ]; then
@@ -235,6 +252,58 @@ add_to_cron()
     log_msg "added cron job"
 }
 
+# Get table of ip connections from ss or netstat. Makes netstat output
+# similar to that of ss in order for functions that use this to assume
+# ss output format.
+# param1 optional ipversion can be 4 o 6
+# param2 If not empty means listening services should be returned.
+get_connections()
+{
+    # Find all connections
+    if [ "$2" = "" ]; then
+        if ! $SS_MISSING; then
+            ss -Hntu"$1" \
+                state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+                # Fix possible ss bug
+                sed -E "s/(tcp|udp)/\1 /g"
+        else
+            netstat -ntu"$1" | tail -n+3 | grep -E "$CONN_STATES_NS" | \
+                # Add [] brackets and prepend dummy column to match ss output
+                awk '{
+                    if($1 == "tcp6" || $1 == "udp6") {
+                        gsub(/:[0-9]+$/, "]&", $4)
+                        gsub(/:[0-9]+$/, "]&", $5)
+
+                        print "col " $1 " " $2 " " $3 " [" $4 " [" $5;
+                    } else {
+                        print "col " $1 " " $2 " " $3 " " $4 " " $5;
+                    }
+                }'
+        fi
+    # Find listening services
+    else
+        if ! $SS_MISSING; then
+            # state unconnected used to also include udp services
+            ss -Hntu"$1" state listening state unconnected | \
+                # Fix possible ss bug and convert *:### to [::]:###
+                sed -E "s/(tcp|udp)/\1 /g; s/ *:([0-9]+) / [::]:\1 /g"
+        else
+            netstat -ntul"$1" | tail -n+3 | \
+                # Add [] brackets and prepend dummy column to match ss output
+                awk '{
+                    if($1 == "tcp6" || $1 == "udp6") {
+                        gsub(/:[0-9]+$/, "]&", $4)
+                        gsub(/:([0-9]+|\*)$/, "]&", $5)
+
+                        print "col " $1 " " $2 " " $3 " [" $4 " [" $5;
+                    } else {
+                        print "col " $1 " " $2 " " $3 " " $4 " " $5;
+                    }
+                }'
+        fi
+    fi
+}
+
 # Count incoming and outgoing connections and stores those that exceed
 # max allowed on a given file.
 # param1 File used to store the list of ip addresses as: conn_count ip
@@ -243,7 +312,7 @@ ban_incoming_and_outgoing()
     whitelist=$(ignore_list "1")
 
     # Find all connections
-    ss -Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+    get_connections | \
         # Extract the client ip
         awk '{print $6}' | \
         # Strip port and [ ] brackets
@@ -275,15 +344,15 @@ ban_only_incoming()
     ALL_SERVER_IP6=$(mktemp "$TMP_PREFIX".XXXXXXXX)
 
     # Find all connections
-    ss -Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+    get_connections | \
         # Extract both local and foreign address:port
         awk '{print $5" "$6;}' > \
         "$ALL_CONNS"
 
     # Find listening connections
-    ss -Hntu state listening | \
+    get_connections " " "l" | \
         # Only keep local address:port
-        awk '{print $4}' > \
+        awk '{print $5}' > \
         "$ALL_LISTENING"
 
     # Also append all server addresses when address is 0.0.0.0 or [::]
@@ -343,8 +412,7 @@ ban_by_port()
 {
     whitelist=$(ignore_list "1")
 
-    ip_all_list=$(ss -Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g'))
-
+    ip_all_list=$(get_connections)
     ip_port_list=$(mktemp "$TMP_PREFIX".XXXXXXXX)
     ip_only_list=$(mktemp "$TMP_PREFIX".XXXXXXXX)
 
@@ -574,9 +642,7 @@ view_connections()
 
     # Find all ipv4 connections
     if $ip4_show; then
-        ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
-            # Fix possible bug with ss
-            sed 's/tcp/tcp /g' | \
+        get_connections "4" | \
             # Extract only the fifth column
             awk '{print $6}' | \
             # Strip port
@@ -593,7 +659,7 @@ view_connections()
 
     # Find all ipv6 connections
     if $ip6_show; then
-        ss -6Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+        get_connections "6" | \
             # Extract only the fifth column
             awk '{print $6}' | \
             # Strip port and leading [
@@ -628,9 +694,7 @@ view_connections_port()
 
     # Find all ipv4 connections
     if $ip4_show; then
-        ss -4Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
-            # Fix possible bug with ss
-            sed 's/tcp/tcp /g' | \
+        get_connections "4" | \
             # Extract only the fifth column
             awk '{print $6}' | \
             # Sort addresses for uniq to work correctly
@@ -645,7 +709,7 @@ view_connections_port()
 
     # Find all ipv6 connections
     if $ip6_show; then
-        ss -6Hntu state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+        get_connections "6" | \
             # Extract only the fifth column
             awk '{print $6}' | \
             # Strip leading [ and ending ]
@@ -883,6 +947,7 @@ APF="/usr/sbin/apf"
 CSF="/usr/sbin/csf"
 IPF="/sbin/ipfw"
 IPT="/sbin/iptables"
+IPT6="/sbin/ip6tables"
 FREQ=1
 DAEMON_FREQ=5
 NO_OF_CONNECTIONS=150
@@ -892,6 +957,7 @@ FIREWALL="auto"
 EMAIL_TO="root"
 BAN_PERIOD=600
 CONN_STATES="connected"
+CONN_STATES_NS="ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING"
 ONLY_INCOMING=false
 
 # Load custom settings
