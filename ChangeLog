@@ -1,9 +1,9 @@
 Changes Log
 ==========================================================================
 
-Version 1.2 - Date 13/11/2018
+Version 1.2 - Date 17/11/2018
 
-  * Initial implementation of banning by port (untested)
+  * Implemented banning rules per incoming port.
   * Print remaining time on bans list.
   * Renamed PORT_MAX_CONNECTIONS to PORT_CONNECTIONS
   * Updated man page.
