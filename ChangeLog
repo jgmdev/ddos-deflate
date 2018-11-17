@@ -8,6 +8,8 @@ Version 1.2 - Date 17/11/2018
   * Renamed PORT_MAX_CONNECTIONS to PORT_CONNECTIONS
   * Updated man page.
   * Updated ddos.conf file.
+  * Restored bsd support by using netstat if ss is unavailable.
+  * Use ipfw to block ipv6 addresses on bsd.
 
 Version 1.1 - Date 11/11/2018
 
