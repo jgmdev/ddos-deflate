@@ -148,6 +148,12 @@ Connection states separated by colon operator (:) to block. See:
 (Default: "connected")
 
 .TP
+.B CONN_STATES_NS = '<valid netstat states>'
+Connection states to block separated by pipe operator when using netstat. See:
+.B netstat(1).
+(Default: "ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING")
+
+.TP
 .B ONLY_INCOMING = <false|true>
 Only count incoming connections to listening services, which will
 prevent the server from banning multiple outgoing connections to
@@ -157,15 +163,22 @@ a single ip address. Slower than default in/out method.
 .TP
 .B ENABLE_PORTS = <false|true>
 This option enables the usage of PORT_CONNECTIONS and overrides the
-ONLY_INCOMING option. Slower than ONLY_INCOMING method.
+ONLY_INCOMING option. Same as ONLY_INCOMING but you can also assing
+blocking rules per port using PORT_CONNECTIONS. Slower than
+ONLY_INCOMING method.
 (Default: false)
 
 .TP
 .B PORT_CONNECTIONS = '<from_port[-to_port]>:<max_conn>:<ban_period> ...'
 Maximum amount of connections per port before blocking. If a user
 is making all its connections to a single port the max connections
-specified for the port will take precedence over the global amount of
-NO_OF_CONNECTIONS value. Example: "80:150:600 443:150:600 20-21:250:600"
+specified for the port will take precedence over the
+NO_OF_CONNECTIONS value.
+You should specify a rule for all the service ports your server is
+running since those ports not defined on this list will be ignored
+when ENABLE_PORTS is enabled, making those ports not listed on this
+configuration flag vulnerable to attacks. Example:
+"80:150:600 443:150:600 20-21:250:600"
 
 .SH FILES
 .B /usr/local/ddos/LICENSE
