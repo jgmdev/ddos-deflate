@@ -1,6 +1,12 @@
 Changes Log
 ==========================================================================
 
+Version 1.3 - Date 21/11/2018
+
+  * Implemented bandwidth rate control (untested).
+  * Added iftop as new dependency.
+  * Added tc as new dependency.
+
 Version 1.2 - Date 17/11/2018
 
   * Implemented banning rules per incoming port.
