@@ -17,6 +17,7 @@ CONF_PATH="${CONF_PATH}/"
 
 # Other variables
 BANS_IP_LIST="/var/lib/ddos/bans.list"
+BANS_BW_IP_LIST="/var/lib/ddos/bans.bw.list"
 SERVER_IP_LIST=$(ifconfig | \
     grep -E "inet6? " | \
     sed "s/addr: /addr:/g" | \
@@ -43,7 +44,7 @@ SERVER_IP6_LIST=$(ifconfig | \
 
 SS_MISSING=false
 
-if ! which ss>/dev/null; then
+if ! command -v ss>/dev/null; then
     SS_MISSING=true
 fi
 
@@ -61,7 +62,7 @@ load_conf()
 
 ddos_head()
 {
-    echo "DDoS-Deflate version 1.2"
+    echo "DDoS-Deflate version 1.3"
     echo "Copyright (C) 2005, Zaf <zaf@vsnl.com>"
     echo
 }
@@ -265,7 +266,7 @@ get_connections()
             ss -Hntu"$1" \
                 state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
                 # Fix possible ss bug
-                sed -E "s/(tcp|udp)/\1 /g"
+                sed -E "s/(tcp|udp)/\\1 /g"
         else
             netstat -ntu"$1" | tail -n+3 | grep -E "$CONN_STATES_NS" | \
                 # Add [] brackets and prepend dummy column to match ss output
@@ -286,7 +287,7 @@ get_connections()
             # state unconnected used to also include udp services
             ss -Hntu"$1" state listening state unconnected | \
                 # Fix possible ss bug and convert *:### to [::]:###
-                sed -E "s/(tcp|udp)/\1 /g; s/ *:([0-9]+) / [::]:\1 /g"
+                sed -E "s/(tcp|udp)/\\1 /g; s/ *:([0-9]+) / [::]:\\1 /g"
         else
             netstat -ntul"$1" | tail -n+3 | \
                 # Add [] brackets and prepend dummy column to match ss output
@@ -623,6 +624,178 @@ check_connections()
     rm -f "$TMP_PREFIX".*
 }
 
+# Check if a connection is exceeding the BANDWIDTH_CONTROL_LIMIT
+# and applies a banning rule accordingly.
+check_connections_bw()
+{
+    if ! BANDWIDTH_CONTROL; then
+        return
+    fi
+
+    whitelist=$(ignore_list "1")
+
+    TMP_PREFIX='/tmp/ddos'
+    TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
+
+    BANNED_IP_MAIL=$($TMP_FILE)
+    BANNED_IP_LIST=$($TMP_FILE)
+
+    echo "Dropped transfer limit to following ip addresses on $(date)" > "$BANNED_IP_MAIL"
+    echo >> "$BANNED_IP_MAIL"
+
+    ip_drop_rate=0
+
+    onlyincoming_bw=""
+
+    if $BANDWIDTH_ONLY_INCOMING; then
+        onlyincoming_bw="1"
+    fi
+
+    iftop -nNt -s3 2>/dev/null | tail -n+4 | head -n-9 | \
+        # Check for clients that reach the BANDWIDTH_CONTROL_LIMIT
+        awk -v ratelimit="$BANDWIDTH_CONTROL_LIMIT" \
+            -v onlyincoming="$onlyincoming_bw" '
+            BEGIN {
+                if(index(ratelimit, "mbit") > 0) {
+                    gsub(/mbit$/, "", ratelimit);
+                    # convert to kbit
+                    ratelimit*=1000;
+                } else if(index(ratelimit, "kbit") > 0) {
+                    gsub(/kbit$/, "", ratelimit);
+                }
+            }
+            {
+                # Handle incoming then outgoing
+                if(index($0, "=>") > 0) {
+                    # store outgoing bandwidth
+                    if(onlyincoming) {
+                        bandwidth[0]=$4;
+                    }
+
+                    # skip to incoming line
+                    getline;
+
+                    # store client ip and incoming bandwidth
+                    client_ip=$1;
+                    bandwidth[1]=$3;
+
+                    bandwidth_total=0;
+                    for(i in bandwidth) {
+                        if(index(bandwidth[i], "Gb") > 0) {
+                            gsub(/Gb$/, bandwidth[i]);
+                            bandwidth_total+=bandwidth[i]*1000*1000;
+                        } else if(index(bandwidth[i], "Mb") > 0) {
+                            gsub(/Mb$/, bandwidth[i]);
+                            bandwidth_total+=bandwidth[i]*1000;
+                        } else if(index(bandwidth[i], "Kb") > 0) {
+                            gsub(/Kb$/, bandwidth[i]);
+                            bandwidth_total+=bandwidth[i];
+                        }
+                    }
+
+                    if(bandwidth_total >= ratelimit) {
+                        print client_ip " " bandwidth_total "Kb"
+                    }
+                }
+            }
+        ' | \
+        # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
+        grepcidr -v -e "$whitelist ::1" 2>/dev/null > "$BAD_IP_LIST"
+
+    while read line; do
+        if [ "$line" = "" ]; then
+            continue
+        fi
+
+        ip_drop_rate=1
+
+        ip=$(echo "$line" | cut -d" " -f1)
+        bandwidth=$(echo "$line" | cut -d" " -f2)
+
+        drop_rate_ip "$ip"
+
+        echo "$ip using $bandwidth/s of bandwidth" >> "$BANNED_IP_MAIL"
+
+        current_time=$(date +"%s")
+        echo "$((current_time+BANDWIDTH_DROP_PERIOD)) $ip $bandwidth" >> \
+            "${BANS_BW_IP_LIST}"
+
+        log_msg "drop transfer rate for $ip wich used ${bandwidth}/s for ban period $BANDWIDTH_DROP_PERIOD"
+    done < "$BAD_IP_LIST"
+
+    if [ "$ip_drop_rate" -eq 1 ]; then
+        if [ -n "$EMAIL_TO" ]; then
+            dt=$(date)
+            hn=$(hostname)
+            cat "$BANNED_IP_MAIL" | mail -s "[$hn] IP addresses transfer rate limit on $dt" $EMAIL_TO
+        fi
+    fi
+
+    rm -f "$TMP_PREFIX".*
+}
+
+# Drops the transfer rate for a given ip.
+# param1 The ip address ratelimit.
+drop_rate_ip()
+{
+    for interface in $BANDWIDTH_INTERFACES; do
+        $TC filter add dev "$interface" protocol ip parent 1:0 prio 1 u32 \
+            match ip dst "$1"/32 flowid 1:1
+    done
+}
+
+# Removes rate limit on ip.
+# param1 The ip address
+# param2 Optional amount of bandwidth the ip used.
+undrop_rate_ip()
+{
+    if [ "$1" = "" ]; then
+        return 1
+    fi
+
+    for interface in $BANDWIDTH_INTERFACES; do
+        $TC filter del dev "$interface" protocol ip parent 1:0 prio 1 u32 \
+            match ip dst "$1"/32 flowid 1:1
+    done
+
+    if [ "$2" != "" ]; then
+        log_msg "undrop transfer rate for $1 that used $2/s of bandwidth"
+    else
+        log_msg "undrop transfer rate for $1"
+    fi
+
+    grep -v "$1" "${BANS_BW_IP_LIST}" > "${BANS_BW_IP_LIST}.tmp"
+    rm "${BANS_BW_IP_LIST}"
+    mv "${BANS_BW_IP_LIST}.tmp" "${BANS_BW_IP_LIST}"
+
+    return 0
+}
+
+# Remove rate rule on ip's after the amount of time given on
+# BANDWIDTH_DROP_PERIOD
+undrop_rate_list()
+{
+    if ! BANDWIDTH_CONTROL; then
+        return
+    fi
+
+    current_time=$(date +"%s")
+
+    while read line; do
+        if [ "$line" = "" ]; then
+            continue
+        fi
+
+        ban_time=$(echo "$line" | cut -d" " -f1)
+        ip=$(echo "$line" | cut -d" " -f2)
+        bandwidth=$(echo "$line" | cut -d" " -f3)
+
+        if [ "$current_time" -gt "$ban_time" ]; then
+            undrop_rate_ip "$ip" "$bandwidth"
+        fi
+    done < "$BANS_BW_IP_LIST"
+}
+
 # Active connections to server.
 view_connections()
 {
@@ -751,6 +924,8 @@ view_bans()
 # Executed as a cleanup function when the daemon is stopped
 on_daemon_exit()
 {
+    stop_bandwidth_control
+
     if [ -e /var/run/ddos.pid ]; then
         rm -f /var/run/ddos.pid
     fi
@@ -807,6 +982,10 @@ start_daemon()
         touch "${BANS_IP_LIST}"
     fi
 
+    if [ ! -e "$BANS_BW_IP_LIST" ]; then
+        touch "${BANS_BW_IP_LIST}"
+    fi
+
     nohup "$0" -l > /dev/null 2>&1 &
 
     log_msg "daemon started"
@@ -849,17 +1028,21 @@ daemon_loop()
 
     detect_firewall
 
-    # run unban_ip_list after 2 minutes of initialization
+    start_bandwidth_control
+
+    # run unban and undrop lists after 2 minutes of initialization
     ban_check_timer=$(date +"%s")
     ban_check_timer=$((ban_check_timer+120))
 
     while true; do
         check_connections
+        check_connections_bw
 
-        # unban expired ip's every 1 minute
+        # unban or undrop expired ip's every 1 minute
         current_loop_time=$(date +"%s")
         if [ "$current_loop_time" -gt "$ban_check_timer" ]; then
             unban_ip_list
+            undrop_rate_list
             ban_check_timer=$(date +"%s")
             ban_check_timer=$((ban_check_timer+60))
         fi
@@ -915,6 +1098,55 @@ detect_firewall()
     fi
 }
 
+# Detects the available network interfaces with internet connection and
+# stores them on BANDWIDTH_INTERFACES.
+detect_interfaces()
+{
+    BANDWIDTH_INTERFACES=""
+
+    interfaces=$(ifconfig | \
+        grep -E "^[0-9a-zA-Z]+:" | \
+        awk '{gsub(/(^lo)?:$/, "", $1); print $1}' | \
+        xargs
+    )
+
+    for interface in $interfaces; do
+        if ping -I "$interface" -c1 8.8.8.8; then
+            BANDWIDTH_INTERFACES="$BANDWIDTH_INTERFACES $interface"
+        fi
+    done
+}
+
+start_bandwidth_control()
+{
+    if BANDWIDTH_CONTROL; then
+        detect_interfaces
+
+        for interface in $BANDWIDTH_INTERFACES; do
+            $TC qdisc add dev "$interface" root handle 1: htb default 30
+            $TC class add dev "$interface" parent 1: classid 1:1 htb \
+                rate "$BANDWIDTH_DROP_RATE"
+            $TC class add dev "$interface" parent 1: classid 1:2 htb \
+                rate "$BANDWIDTH_DROP_RATE"
+        done
+
+        # we force DAEMON_FREQ to zero because iftop takes 3 seconds
+        # to calculate correct bandwidth usage.
+        DAEMON_FREQ=0
+    fi
+}
+
+stop_bandwidth_control()
+{
+    if BANDWIDTH_CONTROL; then
+        detect_interfaces
+
+        for interface in $BANDWIDTH_INTERFACES; do
+            $TC qdisc del dev "$interface" root
+        done
+    fi
+}
+
 view_ports()
 {
     printf "Port blocking is: "
@@ -948,6 +1180,7 @@ CSF="/usr/sbin/csf"
 IPF="/sbin/ipfw"
 IPT="/sbin/iptables"
 IPT6="/sbin/ip6tables"
+TC="/sbin/tc"
 FREQ=1
 DAEMON_FREQ=5
 NO_OF_CONNECTIONS=150
@@ -959,6 +1192,11 @@ BAN_PERIOD=600
 CONN_STATES="connected"
 CONN_STATES_NS="ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT2|TIME_WAIT|CLOSE_WAIT|LAST_ACK|CLOSING"
 ONLY_INCOMING=false
+BANDWIDTH_CONTROL=false
+BANDWIDTH_CONTROL_LIMIT="1512kbit"
+BANDWIDTH_DROP_RATE="256kbit"
+BANDWIDTH_DROP_PERIOD=600
+BANDWIDTH_ONLY_INCOMING=true
 
 # Load custom settings
 load_conf
