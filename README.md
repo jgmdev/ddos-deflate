@@ -34,10 +34,12 @@ ipfw, iptables, or Advanced Policy Firewall (APF).
 * The script can run as a cron job at chosen frequency via the configuration file (default: 1 minute)
 * The script can run as a daemon at chosen frequency via the configuration file (default: 5 seconds)
 * You can receive email alerts when IP addresses are blocked.
-* Control blocking by connection state (see man ss).
+* Control blocking by connection state (see man ss or man nestat).
 * Auto-detection of firewall.
 * Support for APF, CSF, ipfw, and iptables.
 * Logs events to /var/log/ddos.log
+* Can ban only incoming connections or by specific port rules.
+* Option to reduce transfer speed for IP addresses that reach certain limit using iftop and tc.
 * Uses tcpkill to reduce the amount of processes opened by attackers.
 
 ## Installation
