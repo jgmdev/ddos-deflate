@@ -826,7 +826,7 @@ undrop_rate_list()
 
 ip_to_hex()
 {
-    printf '%02x' $(echo "$1" | sed "s/\\./ /g")
+    printf '%02x' "$(echo "$1" | sed "s/\\./ /g")"
 }
 
 # Active connections to server.
@@ -1197,7 +1197,7 @@ start_bandwidth_control()
         # Load right amount of needed virtual interfaces
         if_count="$(echo "$BANDWIDTH_INTERFACES" | wc -w)"
         rmmod ifb 2>/dev/null
-        modprobe ifb numifbs=$if_count
+        modprobe ifb numifbs="$if_count"
 
         # Activate all ifb network interfaces.
         for index in $(seq 0 $((if_count-1)) | xargs); do
