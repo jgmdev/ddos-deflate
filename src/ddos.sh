@@ -628,7 +628,7 @@ check_connections()
 # and applies a banning rule accordingly.
 check_connections_bw()
 {
-    if ! BANDWIDTH_CONTROL; then
+    if ! $BANDWIDTH_CONTROL; then
         return
     fi
 
@@ -662,13 +662,14 @@ check_connections_bw()
                     ratelimit*=1000;
                 } else if(index(ratelimit, "kbit") > 0) {
                     gsub(/kbit$/, "", ratelimit);
+                    ratelimit+=0; # force numeric cast
                 }
             }
             {
                 # Handle incoming then outgoing
                 if(index($0, "=>") > 0) {
                     # store outgoing bandwidth
-                    if(onlyincoming) {
+                    if(!onlyincoming) {
                         bandwidth[0]=$4;
                     }
 
@@ -700,7 +701,10 @@ check_connections_bw()
             }
         ' | \
         # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
-        grepcidr -v -e "$whitelist ::1" 2>/dev/null > "$BAD_IP_LIST"
+        grepcidr -v -e "$whitelist ::1" 2>/dev/null | \
+        # Only leave ip's that aren't already limited
+        grepcidr -v -e "$(cut -d" " -f2 "${BANS_BW_IP_LIST}") 127.0.0.1 ::1" \
+        > "$BAD_IP_LIST"
 
     while read line; do
         if [ "$line" = "" ]; then
@@ -712,13 +716,19 @@ check_connections_bw()
         ip=$(echo "$line" | cut -d" " -f1)
         bandwidth=$(echo "$line" | cut -d" " -f2)
 
-        drop_rate_ip "$ip"
+        prio_tc=$((prio_tc+1))
+
+        drop_rate_ip "$ip" "$prio_tc"
 
         echo "$ip using $bandwidth/s of bandwidth" >> "$BANNED_IP_MAIL"
 
         current_time=$(date +"%s")
-        echo "$((current_time+BANDWIDTH_DROP_PERIOD)) $ip $bandwidth" >> \
+        echo "$((current_time+BANDWIDTH_DROP_PERIOD)) $ip $bandwidth $prio_tc" >> \
             "${BANS_BW_IP_LIST}"
+
+        if [ "$prio_tc" -gt 10000 ]; then
+            prio_tc=0
+        fi
 
         log_msg "drop transfer rate for $ip wich used ${bandwidth}/s for ban period $BANDWIDTH_DROP_PERIOD"
     done < "$BAD_IP_LIST"
@@ -736,26 +746,29 @@ check_connections_bw()
 
 # Drops the transfer rate for a given ip.
 # param1 The ip address ratelimit.
+# param2 The tc priority
 drop_rate_ip()
 {
     for interface in $BANDWIDTH_INTERFACES; do
-        $TC filter add dev "$interface" protocol ip parent 1:0 prio 1 u32 \
-            match ip dst "$1"/32 flowid 1:1
+        $TC filter add dev "$interface" protocol ip parent 1:0 \
+            prio "$2" u32 match ip dst "$1"/32 flowid 1:1
+        $TC filter add dev "$interface" protocol ip parent 1:0 \
+            prio "$2" u32 match ip src "$1"/32 flowid 1:2
     done
 }
 
 # Removes rate limit on ip.
 # param1 The ip address
 # param2 Optional amount of bandwidth the ip used.
+# param3 The assigned tc rule # for the ip.
 undrop_rate_ip()
 {
-    if [ "$1" = "" ]; then
+    if [ "$1" = "" ] || [ "$3" = "" ]; then
         return 1
     fi
 
     for interface in $BANDWIDTH_INTERFACES; do
-        $TC filter del dev "$interface" protocol ip parent 1:0 prio 1 u32 \
-            match ip dst "$1"/32 flowid 1:1
+        tc filter del dev "$interface" prio "$3" 2>/dev/null
     done
 
     if [ "$2" != "" ]; then
@@ -775,7 +788,7 @@ undrop_rate_ip()
 # BANDWIDTH_DROP_PERIOD
 undrop_rate_list()
 {
-    if ! BANDWIDTH_CONTROL; then
+    if ! $BANDWIDTH_CONTROL; then
         return
     fi
 
@@ -789,11 +802,17 @@ undrop_rate_list()
         ban_time=$(echo "$line" | cut -d" " -f1)
         ip=$(echo "$line" | cut -d" " -f2)
         bandwidth=$(echo "$line" | cut -d" " -f3)
+        tcrule=$(echo "$line" | cut -d" " -f4)
 
         if [ "$current_time" -gt "$ban_time" ]; then
-            undrop_rate_ip "$ip" "$bandwidth"
+            undrop_rate_ip "$ip" "$bandwidth" "$tcrule"
         fi
     done < "$BANS_BW_IP_LIST"
+}
+
+ip_to_hex()
+{
+    printf '%02x' $(echo "$1" | sed "s/\\./ /g")
 }
 
 # Active connections to server.
@@ -1026,14 +1045,24 @@ daemon_loop()
     trap 'on_daemon_exit' TERM
     trap 'on_daemon_exit' EXIT
 
+    echo "Detecting firewall..."
     detect_firewall
 
     start_bandwidth_control
 
-    # run unban and undrop lists after 2 minutes of initialization
-    ban_check_timer=$(date +"%s")
-    ban_check_timer=$((ban_check_timer+120))
+    if $ENABLE_PORTS; then
+        echo "Ban by port rules selected. Port rules: [$PORT_CONNECTIONS]"
+    elif $ONLY_INCOMING; then
+        echo "Ban only incoming connections that exceed $NO_OF_CONNECTIONS"
+    else
+        echo "Ban in/out connections that combined exceed $NO_OF_CONNECTIONS"
+    fi
 
+    # run unban and undrop lists after 10 seconds of initialization
+    ban_check_timer=$(date +"%s")
+    ban_check_timer=$((ban_check_timer+10))
+
+    echo "Monitoring connections!"
     while true; do
         check_connections
         check_connections_bw
@@ -1111,7 +1140,7 @@ detect_interfaces()
     )
 
     for interface in $interfaces; do
-        if ping -I "$interface" -c1 8.8.8.8; then
+        if ping -I "$interface" -c1 8.8.8.8>/dev/null; then
             BANDWIDTH_INTERFACES="$BANDWIDTH_INTERFACES $interface"
         fi
     done
@@ -1119,7 +1148,9 @@ detect_interfaces()
 
 start_bandwidth_control()
 {
-    if BANDWIDTH_CONTROL; then
+    if $BANDWIDTH_CONTROL; then
+        echo "Initializing bandwidth control..."
+        echo "Detecting network interfaces..."
         detect_interfaces
 
         for interface in $BANDWIDTH_INTERFACES; do
@@ -1138,11 +1169,10 @@ start_bandwidth_control()
 
 stop_bandwidth_control()
 {
-    if BANDWIDTH_CONTROL; then
-        detect_interfaces
-
+    if $BANDWIDTH_CONTROL; then
         for interface in $BANDWIDTH_INTERFACES; do
-            $TC qdisc del dev "$interface" root
+            echo "Disabling bandwidth control on: $interface..."
+            $TC qdisc del dev "$interface" root 2>/dev/null
         done
     fi
 }
