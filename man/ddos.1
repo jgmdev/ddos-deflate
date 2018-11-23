@@ -180,6 +180,35 @@ when ENABLE_PORTS is enabled, making those ports not listed on this
 configuration flag vulnerable to attacks. Example:
 "80:150:600 443:150:600 20-21:250:600"
 
+.TP
+.B BANDWIDTH_CONTROL = <false|true>
+Monitor bandwidth usage per ip and slows down data transfer rate/s if
+the BANDWIDTH_CONTROL_LIMIT is exceeded. Requires iftop and tc.
+(Default: false)
+
+.TP
+.B BANDWIDTH_CONTROL_LIMIT = '<number{kbit|mbit}>'
+The data transfer rate/s that triggers a rate drop to the speed
+defined in BANDWIDTH_DROP_RATE, can be expressed in mbit or kbit.
+(Default: 1896kbit)
+
+.TP
+.B BANDWIDTH_DROP_RATE = '<number{kbit|mbit}>'
+When the maximum data transfer rate defined in BANDWIDTH_CONTROL_LIMIT
+is reached, the speed of the transfer will be reduced to this value
+for the amount of seconds specified in BANDWIDTH_DROP_PERIOD.
+(Default: 512kbit)
+
+.TP
+.B BANDWIDTH_DROP_PERIOD = <number>
+The amount of time in seconds to keep a client transfer at the speed
+defined on BANDWIDTH_DROP_RATE. (Default: 600)
+
+.TP
+.B BANDWIDTH_ONLY_INCOMING = <false|true>
+If true, takes into consideration only the data received from
+client and not the data sent by server to client. (Default: true)
+
 .SH FILES
 .B /usr/local/ddos/LICENSE
 .br
