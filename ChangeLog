@@ -3,9 +3,12 @@ Changes Log
 
 Version 1.3 - Date 21/11/2018
 
-  * Implemented bandwidth rate control (untested).
+  * Implemented bandwidth rate control.
+  * Traffic shaping works on both directions: ingress/outgress.
+  * Introduced usage of ifb kernel module to redirect ingress
+    and be able to filter it.
   * Added iftop as new dependency.
-  * Added tc as new dependency.
+  * Added tc as new dependency needed for traffic shaping.
 
 Version 1.2 - Date 17/11/2018
 
