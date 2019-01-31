@@ -263,8 +263,10 @@ get_connections()
     # Find all connections
     if [ "$2" = "" ]; then
         if ! $SS_MISSING; then
-            ss -Hntu"$1" \
+            ss -ntu"$1" \
                 state $(echo "$CONN_STATES" | sed 's/:/ state /g') | \
+                # fixing dependency on '-H' switch which is unavailable in some versions of ss
+                tail -n +2 | \
                 # Fix possible ss bug
                 sed -E "s/(tcp|udp)/\\1 /g"
         else
@@ -285,7 +287,8 @@ get_connections()
     else
         if ! $SS_MISSING; then
             # state unconnected used to also include udp services
-            ss -Hntu"$1" state listening state unconnected | \
+            ss -ntu"$1" state listening state unconnected | \
+                tail -n +2 | \
                 # Fix possible ss bug and convert *:### to [::]:###
                 sed -E "s/(tcp|udp)/\\1 /g; s/ *:([0-9]+) / [::]:\\1 /g"
         else
