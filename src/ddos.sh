@@ -18,6 +18,8 @@ CONF_PATH="${CONF_PATH}/"
 # Other variables
 BANS_IP_LIST="/var/lib/ddos/bans.list"
 BANS_BW_IP_LIST="/var/lib/ddos/bans.bw.list"
+BANS_CLOUDFLARE_IP_LIST="/var/lib/ddos/bans.cf.list"
+CLOUDFLARE_PCAP="/var/lib/ddos/tcpdump.pcap"
 SERVER_IP_LIST=$(ifconfig | \
     grep -E "inet6? " | \
     sed "s/addr: /addr:/g" | \
@@ -84,6 +86,8 @@ showhelp()
     echo '-t      | --status: Show status of daemon and pid if currently running'
     echo '-v[4|6] | --view [4|6]: Display active connections to the server'
     echo '-y[4|6] | --view-port [4|6]: Display active connections to the server including the port'
+    echo '-f      | --traffic-list: List bandwidth control rules.'
+    echo '-p      | --ports: List port blocking rules.'
     echo '-k      | --kill: Block all ip addresses making more than N connections'
 }
 
@@ -132,6 +136,10 @@ ignore_list()
 
     if [ "$1" = "1" ]; then
         cut -d" " -f2 "${BANS_IP_LIST}"
+
+        if $ENABLE_CLOUDFLARE; then
+            cut -d" " -f2 "${BANS_CLOUDFLARE_IP_LIST}"
+        fi
     fi
 }
 
@@ -223,6 +231,67 @@ unban_ip_list()
             unban_ip "$ip" "$connections"
         fi
     done < $BANS_IP_LIST
+}
+
+# Bans a given ip using iptables or ip6tables for ipv6 connections.
+# TODO: implement rules for other firewalls, eg: freebsd
+# param1 The ip address to block
+ban_ip_cloudflare()
+{
+    if ! echo "$1" | grep ":">/dev/null; then
+        $IPT -I INPUT -m string --algo bm --string "CF-Connecting-IP: $1" -j DROP
+    else
+        $IPT6 -I INPUT -m string --algo bm --string "CF-Connecting-IP: $1" -j DROP
+    fi
+}
+
+# Unbans an ip using iptables or ip6tables for ipv6 connections.
+# TODO: implement rules for other firewalls, eg: freebsd
+# param1 The ip address
+# param2 Optional amount of connections the unbanned ip did.
+unban_ip_cloudflare()
+{
+    if [ "$1" = "" ]; then
+        return 1
+    fi
+
+    if ! echo "$1" | grep ":">/dev/null; then
+        $IPT -D INPUT -m string --algo bm --string "CF-Connecting-IP: $1" -j DROP
+    else
+        $IPT6 -D INPUT -m string --algo bm --string "CF-Connecting-IP: $1" -j DROP
+    fi
+
+    if [ "$2" != "" ]; then
+        log_msg "unbanned CF $1 that opened $2 connections"
+    else
+        log_msg "unbanned CF $1"
+    fi
+
+    grep -v "$1" "${BANS_CLOUDFLARE_IP_LIST}" > "${BANS_CLOUDFLARE_IP_LIST}.tmp"
+    rm "${BANS_CLOUDFLARE_IP_LIST}"
+    mv "${BANS_CLOUDFLARE_IP_LIST}.tmp" "${BANS_CLOUDFLARE_IP_LIST}"
+
+    return 0
+}
+
+# Unbans ip's after the amount of time given on BAN_PERIOD
+unban_ip_list_cloudflare()
+{
+    current_time=$(date +"%s")
+
+    while read line; do
+        if [ "$line" = "" ]; then
+            continue
+        fi
+
+        ban_time=$(echo "$line" | cut -d" " -f1)
+        ip=$(echo "$line" | cut -d" " -f2)
+        connections=$(echo "$line" | cut -d" " -f3)
+
+        if [ "$current_time" -gt "$ban_time" ]; then
+            unban_ip_cloudflare "$ip" "$connections"
+        fi
+    done < $BANS_CLOUDFLARE_IP_LIST
 }
 
 add_to_cron()
@@ -528,6 +597,122 @@ ban_by_port()
     done
 
     rm "$ip_port_list" "$ip_only_list"
+}
+
+# Add list of current cloudflare ip's to a given file or print it
+# if no file is given.
+ban_cloudflare()
+{
+    whitelist=$(ignore_list "1")
+
+    if [ "$1" != "" ]; then
+        tcpdump -r "$CLOUDFLARE_PCAP" -n -A | \
+            # filter tcpdump data to the CF needed header
+            grep "CF-Connecting-IP:" | \
+            # Extract ip
+            cut -d' ' -f2 | \
+            # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
+            # Sort addresses for uniq to work correctly
+            sort | \
+            # Group same occurrences of ip and prepend amount of occurences found
+            uniq -c | \
+            # sort by number of connections and save to file
+            sort -nr | \
+            # Only store connections that exceed max allowed
+            awk "{ if (\$1 >= $NO_OF_CONNECTIONS) print; }" > "$1"
+    else
+        tcpdump -r "$CLOUDFLARE_PCAP" -n -A | \
+            # filter tcpdump data to the CF needed header
+            grep "CF-Connecting-IP:" | \
+            # Extract ip
+            cut -d' ' -f2 | \
+            # Only leave non whitelisted, we add ::1 to ensure -v works for ipv6
+            grepcidr -v -e "$SERVER_IP_LIST $whitelist ::1" 2>/dev/null | \
+             # Sort addresses for uniq to work correctly
+            sort | \
+            # Group same occurrences of ip and prepend amount of occurences found
+            uniq -c | \
+            # sort by number of connections
+            sort -nr
+    fi
+}
+
+# Check active cloudflare connections and ban if neccessary.
+check_connections_cloudflare()
+{
+    su_required
+
+    TMP_PREFIX='/tmp/ddos'
+    TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
+    BAD_IP_LIST=$($TMP_FILE)
+
+    ban_cloudflare "$BAD_IP_LIST"
+
+    FOUND=$(cat "$BAD_IP_LIST")
+
+    if [ "$FOUND" = "" ]; then
+        rm -f "$BAD_IP_LIST"
+
+        if [ "$KILL" -eq 1 ]; then
+            echo "No connections exceeding max allowed."
+        fi
+
+        return 0
+    fi
+
+    if [ "$KILL" -eq 1 ]; then
+        echo "List of connections that exceed max allowed"
+        echo "==========================================="
+        cat "$BAD_IP_LIST"
+    fi
+
+    BANNED_IP_MAIL=$($TMP_FILE)
+    BANNED_IP_LIST=$($TMP_FILE)
+
+    echo "Banned the following ip addresses on $(date)" > "$BANNED_IP_MAIL"
+    echo >> "$BANNED_IP_MAIL"
+
+    IP_BAN_NOW=0
+
+    FIELDS_COUNT=$(head -n1 "$BAD_IP_LIST" | xargs | sed "s/ /\\n/g" | wc -l)
+
+    while read line; do
+        BAN_TOTAL="$BAN_PERIOD"
+
+        CURR_LINE_CONN=$(echo "$line" | cut -d" " -f1)
+        CURR_LINE_IP=$(echo "$line" | cut -d" " -f2)
+
+        IP_BAN_NOW=1
+
+        echo "${CURR_LINE_IP} with $CURR_LINE_CONN connections" >> "$BANNED_IP_MAIL"
+        echo "${CURR_LINE_IP}" >> "$BANNED_IP_LIST"
+
+        current_time=$(date +"%s")
+        echo "$((current_time+BAN_TOTAL)) ${CURR_LINE_IP} ${CURR_LINE_CONN}" >> \
+            "${BANS_CLOUDFLARE_IP_LIST}"
+
+        ban_ip_cloudflare "$CURR_LINE_IP"
+
+        log_msg "banned ${CURR_LINE_IP} with $CURR_LINE_CONN connections for ban period $BAN_TOTAL"
+    done < "$BAD_IP_LIST"
+
+    if [ "$IP_BAN_NOW" -eq 1 ]; then
+        if [ -n "$EMAIL_TO" ]; then
+            dt=$(date)
+            hn=$(hostname)
+            cat "$BANNED_IP_MAIL" | mail -s "[$hn] Cloudflare IP addresses banned on $dt" $EMAIL_TO
+        fi
+
+        if [ "$KILL" -eq 1 ]; then
+            echo "==========================================="
+            echo "Banned CloudFlare IP addresses:"
+            echo "==========================================="
+            cat "$BANNED_IP_LIST"
+        fi
+    fi
+
+    rm -f "$TMP_PREFIX".*
 }
 
 # Check active connections and ban if neccessary.
@@ -882,6 +1067,13 @@ view_connections()
             # Numerical sort in reverse order
             sort -nr
     fi
+
+    if $ENABLE_CLOUDFLARE; then
+        echo
+        echo "List of CloudFlare ip's."
+        echo "==================================="
+        ban_cloudflare
+    fi
 }
 
 # Active connections to server including port.
@@ -955,6 +1147,27 @@ view_bans()
             echo "$(printf "%02d" "$hours"):$(printf "%02d" "$minutes") $ip $port $conns"
         done < "$BANS_IP_LIST"
     fi
+
+    if $ENABLE_CLOUDFLARE; then
+        echo
+        echo "List of banned CloudFlare ip's."
+        echo "==================================="
+        if [ -e "$BANS_CLOUDFLARE_IP_LIST" ]; then
+            printf "% -5s %s\\n" "Exp." "IP"
+            echo '-----------------------------------'
+            while read line; do
+                time=$(echo "$line" | cut -d" " -f1)
+                ip=$(echo "$line" | cut -d" " -f2)
+                conns=$(echo "$line" | cut -d" " -f3)
+
+                current_time=$(date +"%s")
+                hours=$(echo $(((time-current_time)/60/60)))
+                minutes=$(echo $(((time-current_time)/60%60)))
+
+                echo "$(printf "%02d" "$hours"):$(printf "%02d" "$minutes") $ip $conns"
+            done < "$BANS_CLOUDFLARE_IP_LIST"
+        fi
+    fi
 }
 
 view_drops()
@@ -987,6 +1200,8 @@ view_drops()
 on_daemon_exit()
 {
     stop_bandwidth_control
+
+    pkill -9 tcpdump
 
     if [ -e /var/run/ddos.pid ]; then
         rm -f /var/run/ddos.pid
@@ -1048,6 +1263,10 @@ start_daemon()
         touch "${BANS_BW_IP_LIST}"
     fi
 
+    if [ ! -e "$BANS_CLOUDFLARE_IP_LIST" ]; then
+        touch "${BANS_CLOUDFLARE_IP_LIST}"
+    fi
+
     nohup "$0" -l > /dev/null 2>&1 &
 
     log_msg "daemon started"
@@ -1093,6 +1312,13 @@ daemon_loop()
 
     start_bandwidth_control
 
+    # Start tcpdump sniffing.
+    if $ENABLE_CLOUDFLARE; then
+        # kill any previous opened tcpdump session.
+        pkill -9 tcpdump
+        tcpdump -w "$CLOUDFLARE_PCAP" -G "$((DAEMON_FREQ+DAEMON_FREQ))" &
+    fi
+
     if $ENABLE_PORTS; then
         echo "Ban by port rules selected. Port rules: [$PORT_CONNECTIONS]"
     elif $ONLY_INCOMING; then
@@ -1110,11 +1336,20 @@ daemon_loop()
         check_connections
         check_connections_bw
 
+        if $ENABLE_CLOUDFLARE; then
+            check_connections_cloudflare
+        fi
+
         # unban or undrop expired ip's every 1 minute
         current_loop_time=$(date +"%s")
         if [ "$current_loop_time" -gt "$ban_check_timer" ]; then
             unban_ip_list
             undrop_rate_list
+
+            if $ENABLE_CLOUDFLARE; then
+                unban_ip_list_cloudflare
+            fi
+
             ban_check_timer=$(date +"%s")
             ban_check_timer=$((ban_check_timer+60))
         fi
@@ -1360,6 +1595,8 @@ while [ "$1" ]; do
 
             if ! unban_ip "$1"; then
                 echo "Please specify a valid ip address."
+            elif $ENABLE_CLOUDFLARE; then
+                unban_ip_cloudflare "$1"
             fi
             exit
             ;;
@@ -1433,6 +1670,10 @@ done
 if [ $KILL -eq 1 ]; then
     detect_firewall
     check_connections
+
+    if $ENABLE_CLOUDFLARE; then
+        check_connections_cloudflare
+    fi
 else
     showhelp
 fi
