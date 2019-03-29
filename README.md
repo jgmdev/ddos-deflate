@@ -41,7 +41,7 @@ ipfw, iptables, or Advanced Policy Firewall (APF).
 * Can ban only incoming connections or by specific port rules.
 * Option to reduce transfer speed for IP addresses that reach certain limit using iftop and tc.
 * Uses tcpkill to reduce the amount of processes opened by attackers.
-* Cloudflare support. **(Experimental)**
+* Cloudflare support by using tcpdump to get the real user ip and using iptables string matching to drop connections.
 
 ## Installation
 
