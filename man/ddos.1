@@ -71,6 +71,9 @@ stop the daemon
 \fB\-t\fR, \fB\-\-status\fR
 display the daemon status and pid if running
 .TP
+\fB\-p\fR, \fB\-\-ports\fR
+display ports blocking configuration
+.TP
 \fB\-v[4|6]\fR, \fB\-\-view [4|6]\fR
 display active connections to the server, combine with 4 or 6 to define
 the ip version.
@@ -158,6 +161,13 @@ Connection states to block separated by pipe operator when using netstat. See:
 Only count incoming connections to listening services, which will
 prevent the server from banning multiple outgoing connections to
 a single ip address. Slower than default in/out method.
+(Default: false)
+
+.TP
+.B ENABLE_CLOUDFLARE = <false|true>
+If set to true the script will also use tcpdump to scan for ip
+addresses given in the CF-Connecting-IP header tag sent by cloudflare
+servers and ban using iptables string matching module.
 (Default: false)
 
 .TP
