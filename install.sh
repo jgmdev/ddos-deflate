@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# Check if the script is executed as root
+if [ "$(id -u)" -ne 0 ]
+then
+echo "Please execute this script as root."
+exit 1
+fi
+
 # Check for required dependencies
 if [ -f "/usr/bin/apt-get" ]; then
     install_type='2';
