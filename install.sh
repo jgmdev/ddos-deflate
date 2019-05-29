@@ -1,10 +1,9 @@
 #!/bin/sh
 
 # Check if the script is executed as root
-if [ "$(id -u)" -ne 0 ]
-then
-echo "Please execute this script as root."
-exit 1
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Please execute this script as root."
+    exit 1
 fi
 
 # Check for required dependencies
