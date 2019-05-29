@@ -25,6 +25,18 @@ if [ -e '/etc/rc.d/ddos' ]; then
     echo " (done)"
 fi
 
+if [ -e '/usr/lib/systemd/system/ddos.service' ]; then
+    echo; echo -n "Deleting legacy systemd service..."
+    SYSTEMCTL_PATH=`whereis update-rc.d`
+    if [ "$SYSTEMCTL_PATH" != "systemctl:" ]; then
+        systemctl stop ddos > /dev/null 2>&1
+        systemctl disable ddos > /dev/null 2>&1
+    fi
+    rm -f /usr/lib/systemd/system/ddos.service
+    echo -n ".."
+    echo " (done)"
+fi
+
 if [ -e '/lib/systemd/system/ddos.service' ]; then
     echo; echo -n "Deleting systemd service..."
     SYSTEMCTL_PATH=`whereis update-rc.d`
