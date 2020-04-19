@@ -46,6 +46,12 @@ ipfw, iptables, or Advanced Policy Firewall (APF).
 ## Installation
 
 As root user execute the following commands:
+```shell
+sudo apt install dnsutils
+sudo apt-get install tcpdump
+sudo apt-get install dsniff -y
+sudo apt install grepcidr
+```
 
 ```shell
 wget https://github.com/jgmdev/ddos-deflate/archive/master.zip -O ddos.zip
