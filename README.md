@@ -48,6 +48,7 @@ ipfw, iptables, or Advanced Policy Firewall (APF).
 As root user execute the following commands:
 ```shell
 sudo apt install dnsutils
+sudo apt-get install net-tools
 sudo apt-get install tcpdump
 sudo apt-get install dsniff -y
 sudo apt install grepcidr
