@@ -43,9 +43,11 @@ ipfw, iptables, or Advanced Policy Firewall (APF).
 * Uses tcpkill to reduce the amount of processes opened by attackers.
 * Cloudflare support by using tcpdump to get the real user ip and using iptables string matching to drop connections.
 
-## Installation
+## Dependencies
 
-As root user execute the following commands:
+The installation script has some support to automatically install the required dependencies but, it may fail to install some or all of them. You may want to manually install the required dependencies before proceeding to installation as listed below on the subsection of your linux distro.
+
+## Ubuntu/Debian
 ```shell
 sudo apt install dnsutils
 sudo apt-get install net-tools
@@ -53,6 +55,9 @@ sudo apt-get install tcpdump
 sudo apt-get install dsniff -y
 sudo apt install grepcidr
 ```
+## Installation
+
+As root user execute the following commands:
 
 ```shell
 wget https://github.com/jgmdev/ddos-deflate/archive/master.zip -O ddos.zip
