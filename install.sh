@@ -128,7 +128,7 @@ if [ -d /lib/systemd/system ]; then
     echo -n 'Setting up systemd service...'
     mkdir -p "$DESTDIR/lib/systemd/system/"
     cp src/ddos.service "$DESTDIR/lib/systemd/system/" > /dev/null 2>&1
-    chmod 0755 "$DESTDIR/lib/systemd/system/ddos.service" > /dev/null 2>&1
+    chmod 0644 "$DESTDIR/lib/systemd/system/ddos.service" > /dev/null 2>&1
     echo " (done)"
 
     # Check if systemctl is installed and activate service
